@@ -8,18 +8,27 @@
     "dev:client:delayed": "node -e \"setTimeout(() => require('child_process').execSync('npm run dev:client', { stdio: 'inherit' }), 3000)\"",
     "dev:client": "vite",
     "dev:server": "node server/index.js",
+    "migrate": "node migrate.js",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.0",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "framer-motion": "^12.38.0",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.8.0",
     "pg": "^8.16.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "recharts": "^2.15.4"
+    "react-router-dom": "^7.14.1",
+    "recharts": "^2.15.4",
+    "three": "^0.184.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
