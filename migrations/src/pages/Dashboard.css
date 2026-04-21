@@ -1,0 +1,29 @@
+﻿/* Dashboard Layout */
+.dashboard {
+  display: flex;
+  min-height: 100vh;
+  background: #f8fafc;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.dashboard-main {
+  flex: 1;
+  transition: margin-left 0.3s ease;
+  margin-left: 280px;
+  background: #f8fafc;
+}
+
+.dashboard-main.sidebar-closed {
+  margin-left: 80px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard-main {
+    margin-left: 0;
+  }
+  
+  .dashboard-main.sidebar-open {
+    margin-left: 0;
+  }
+}
