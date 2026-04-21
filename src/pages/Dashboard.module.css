@@ -1,0 +1,145 @@
+.dashboardGrid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.widget {
+  background: rgba(25, 35, 55, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.widgetHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.widgetTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.widgetIcon {
+  font-size: 1.5rem;
+  opacity: 0.8;
+}
+
+/* Specific Widgets */
+.cubeWidget {
+  grid-column: span 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 350px;
+}
+
+.cubeControls {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cubeControls span {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.cubeControls strong {
+  display: block;
+  font-size: 1.2rem;
+  color: var(--color-text-main);
+  font-weight: 700;
+}
+
+.weatherWidget {
+  grid-column: span 4;
+  display: flex;
+  flex-direction: column;
+}
+
+.weatherData {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  flex: 1;
+}
+
+.dataValue {
+  text-align: center;
+}
+
+.dataValue h3 {
+  font-size: 2.5rem;
+  color: white;
+  margin-bottom: 0.2rem;
+  font-weight: 800;
+}
+
+.dataValue p {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.proximityWidget {
+  grid-column: span 4;
+  display: flex;
+  flex-direction: column;
+}
+
+.radar {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  border-radius: 50%;
+  width: 150px;
+  height: 150px;
+  margin: 0 auto;
+  border: 2px solid rgba(120, 186, 73, 0.2);
+  background: radial-gradient(circle at center, rgba(120,186,73,0.1) 0%, transparent 70%);
+}
+
+.radarValue {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-green);
+  z-index: 2;
+  text-shadow: 0 0 10px rgba(120, 186, 73, 0.5);
+}
+
+.chartWidget {
+  grid-column: span 12;
+  height: 400px;
+}
+
+.chartWidgetHalf {
+  grid-column: span 6;
+  height: 350px;
+}
+
+@media (max-width: 1024px) {
+  .cubeWidget, .weatherWidget, .proximityWidget {
+    grid-column: span 6;
+  }
+  .chartWidgetHalf {
+    grid-column: span 12;
+  }
+}
+
+@media (max-width: 768px) {
+  .cubeWidget, .weatherWidget, .proximityWidget, .chartWidget, .chartWidgetHalf {
+    grid-column: span 12;
+  }
+}
