@@ -1,39 +1,83 @@
 .adminContainer {
-  background: rgba(25, 35, 55, 0.4);
+  background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  color: #fff;
+  font-family: 'Inter', sans-serif;
 }
 
+.headerSection {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pageTitle {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0 0 0.3rem 0;
+  color: #fff;
+}
+
+.pageSubtitle {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Actions Bar */
 .actionBar {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.searchWrapper {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
 }
 
 .searchBox {
-  padding: 0.8rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
+  width: 100%;
+  padding: 0.8rem 1rem 0.8rem 2.8rem;
+  background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  border-radius: 10px;
   color: white;
-  width: 300px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
 }
 
 .searchBox:focus {
   outline: none;
-  border-color: var(--color-blue);
-  background: rgba(255, 255, 255, 0.1);
+  border-color: #78ba49;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 3px rgba(120, 186, 73, 0.1);
 }
 
 .newUserBtn {
-  background: var(--color-green);
-  color: black;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #78ba49;
+  color: #070d19;
   border: none;
   padding: 0.8rem 1.5rem;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 700;
   cursor: pointer;
   box-shadow: 0 5px 15px rgba(120, 186, 73, 0.2);
@@ -43,179 +87,440 @@
 .newUserBtn:hover {
   background: #85cd51;
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(120, 186, 73, 0.4);
+  box-shadow: 0 8px 25px rgba(120, 186, 73, 0.4);
 }
 
+/* Tabla */
 .tableWrapper {
   overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .userTable {
   width: 100%;
   border-collapse: collapse;
+  white-space: nowrap;
 }
 
-.userTable th, .userTable td {
-  padding: 1rem;
+.userTable th,
+.userTable td {
+  padding: 1.2rem 1.5rem;
   text-align: left;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .userTable th {
-  color: var(--color-text-muted);
+  background: rgba(255, 255, 255, 0.02);
+  color: #94a3b8;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
-.userTable td {
-  color: var(--color-text-main);
+.userTable tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
 }
 
-.statusActive {
-  background: rgba(120, 186, 73, 0.2);
-  color: var(--color-green);
-  padding: 0.3rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 700;
+.cellId {
+  color: #64748b;
+  font-family: monospace;
+  font-size: 0.9rem;
 }
 
-.statusInactive {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-  padding: 0.3rem 0.8rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 700;
+.userCell {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.actionBtn {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  margin-right: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.actionBtn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  z-index: 1000;
+.avatarPlaceholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #8b5cf6);
   display: flex;
   justify-content: center;
   align-items: center;
-  animation: fadeIn 0.3s ease;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #fff;
+}
+
+.hashCell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #64748b;
+  font-family: monospace;
+}
+
+/* Badges de Roles */
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.roleAdmin {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.roleUser {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* Estado */
+.statusActive,
+.statusInactive {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.statusActive {
+  color: #78ba49;
+}
+
+.statusInactive {
+  color: #ef4444;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.statusActive .statusDot {
+  background: #78ba49;
+  box-shadow: 0 0 8px #78ba49;
+}
+
+.statusInactive .statusDot {
+  background: #ef4444;
+}
+
+/* Botones Acción */
+.actionBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  padding: 0.5rem;
+  border-radius: 8px;
+  margin-left: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.actionBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.actionBtnDanger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.actionBtnSuccess:hover {
+  background: rgba(120, 186, 73, 0.15);
+  color: #78ba49;
+  border-color: rgba(120, 186, 73, 0.3);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 3rem !important;
+  color: #64748b !important;
+  font-style: italic;
+}
+
+/* --- MODAL UI/UX (CENTRADOS PERFECTAMENTE) --- */
+.modalOverlay {
+  position: fixed;
+  /* LA CLAVE ESTÁ AQUÍ: inset: 0 hace que cubra todo sin generar scrollbars */
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(7, 13, 25, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 0.2s ease;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .modalContent {
-  background: linear-gradient(135deg, rgba(20, 30, 48, 0.95) 0%, rgba(36, 59, 85, 0.95) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f172a;
+  border: 1px solid rgba(120, 186, 73, 0.2);
   border-radius: 20px;
-  padding: 2rem;
   width: 100%;
-  max-width: 450px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  position: relative;
-  animation: slideUp 0.3s ease-out;
+  max-width: 480px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+  overflow: hidden;
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Pequeño margen para que no toque los bordes en móviles */
+  margin: 1rem;
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .modalHeader {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.5rem 2rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modalTitleArea {
+  display: flex;
+  gap: 1rem;
   align-items: center;
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modalIconWrapper {
+  background: rgba(120, 186, 73, 0.1);
+  padding: 0.8rem;
+  border-radius: 12px;
+  border: 1px solid rgba(120, 186, 73, 0.2);
 }
 
 .modalHeader h2 {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   color: white;
+  margin: 0 0 0.2rem 0;
+}
+
+.modalHeader p {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0;
 }
 
 .closeBtn {
   background: transparent;
   border: none;
-  font-size: 1.5rem;
-  color: var(--color-text-muted);
+  color: #64748b;
   cursor: pointer;
   transition: color 0.2s;
+  padding: 0;
 }
 
 .closeBtn:hover {
-  color: white;
+  color: #ef4444;
+}
+
+.formContent {
+  padding: 2rem;
 }
 
 .formGroup {
-  margin-bottom: 1.2rem;
+  margin-bottom: 1.5rem;
 }
 
 .formGroup label {
   display: block;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.6rem;
   font-size: 0.9rem;
-  color: var(--color-text-muted);
+  font-weight: 500;
+  color: #cbd5e1;
 }
 
-.formGroup input, .formGroup select {
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 1rem;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.inputWrapper input,
+.inputWrapper select {
   width: 100%;
-  padding: 0.8rem;
-  background: rgba(255, 255, 255, 0.05);
+  padding: 0.9rem 1rem 0.9rem 2.8rem;
+  background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  border-radius: 10px;
   color: white;
-  font-size: 1rem;
+  font-size: 0.95rem;
+  transition: all 0.3s;
 }
 
-.formGroup input:focus, .formGroup select:focus {
+.inputWrapper input:focus,
+.inputWrapper select:focus {
   outline: none;
-  border-color: var(--color-green);
+  border-color: #78ba49;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 3px rgba(120, 186, 73, 0.1);
 }
 
-.formGroup select option {
-  background: #1e293b;
+.inputWrapper select option {
+  background: #0f172a;
   color: white;
 }
 
-.submitBtn {
-  width: 100%;
-  padding: 1rem;
-  background: var(--color-green);
-  color: black;
+.eyeBtn {
+  position: absolute;
+  right: 1rem;
+  background: transparent;
   border: none;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 1.1rem;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.eyeBtn:hover {
+  color: #cbd5e1;
+}
+
+/* Validacion de Password UX */
+.pwdStrengthContainer {
   margin-top: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.strengthBarBg {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.strengthBarFill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.4s ease, background-color 0.4s ease;
+}
+
+.validationList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.validationList li {
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: color 0.3s;
+}
+
+.valid {
+  color: #78ba49;
+}
+
+.invalid {
+  color: #64748b;
+}
+
+/* Botones del Modal */
+.modalFooter {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2.5rem;
+}
+
+.cancelBtn,
+.submitBtn {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s;
 }
 
-.submitBtn:hover {
+.cancelBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.cancelBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+.submitBtn {
+  background: #78ba49;
+  color: #070d19;
+  border: none;
+}
+
+.submitBtn:hover:not(:disabled) {
   background: #85cd51;
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(120, 186, 73, 0.3);
+}
+
+.submitBtn:disabled {
+  background: rgba(120, 186, 73, 0.3);
+  color: rgba(7, 13, 25, 0.5);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }

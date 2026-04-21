@@ -1,92 +1,354 @@
-.profileContainer {
-  background: rgba(25, 35, 55, 0.4);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  padding: 2rem;
-  max-width: 600px;
-  margin: 0 auto;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+.profileWrapper {
+  padding: 2rem 5%;
+  font-family: 'Inter', sans-serif;
+  color: #fff;
 }
 
-.profileHeader {
-  text-align: center;
+.pageHeader {
   margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.pageTitle {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0 0 0.3rem 0;
+}
+
+.pageSubtitle {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Layout del Perfil: Tarjeta Izquierda + Formulario Derecha */
+.profileContainer {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 2rem;
+  max-width: 1000px;
+}
+
+/* --- TARJETA DE IDENTIDAD --- */
+.identityCard {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.avatarWrapper {
+  position: relative;
+  margin-bottom: 1.5rem;
 }
 
 .avatar {
-  width: 100px;
-  height: 100px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-blue) 0%, var(--color-green) 100%);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.8), rgba(120, 186, 73, 0.8));
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 3rem;
-  margin: 0 auto 1rem auto;
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: #fff;
   border: 4px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+}
+
+.statusPing {
+  position: absolute;
+  bottom: 5px;
+  right: 10px;
+  width: 18px;
+  height: 18px;
+  background-color: #78ba49;
+  border: 3px solid #0f172a;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #78ba49;
 }
 
 .profileTitle {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   color: white;
+  margin: 0 0 0.5rem 0;
+  font-family: monospace;
 }
 
-.profileRole {
-  color: var(--color-green);
-  font-weight: 600;
-  margin-top: 0.5rem;
-  display: inline-block;
-  background: rgba(120, 186, 73, 0.1);
-  padding: 0.2rem 1rem;
+.roleBadgeWrapper {
+  margin-bottom: 2rem;
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 1rem;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.roleAdmin {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.roleUser {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.contactInfo {
+  width: 100%;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.infoRow {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  justify-content: center;
+}
+
+.infoIcon {
+  color: #64748b;
+}
+
+
+/* --- SECCIÓN DE EDICIÓN --- */
+.editSection {
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
-.formGroup {
-  margin-bottom: 1.5rem;
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sectionHeader h3 {
+  font-size: 1.2rem;
+  margin: 0;
+  color: #e2e8f0;
+}
+
+.successBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(120, 186, 73, 0.15);
+  color: #78ba49;
+  padding: 0.3rem 0.8rem;
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.formContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .formGroup label {
   display: block;
-  margin-bottom: 0.5rem;
-  color: var(--color-text-muted);
+  margin-bottom: 0.4rem;
   font-size: 0.95rem;
+  font-weight: 500;
+  color: #cbd5e1;
 }
 
-.formGroup input {
+.inputHelp {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0 0 0.8rem 0;
+}
+
+.inputWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 1.2rem;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.inputWrapper input {
   width: 100%;
-  padding: 0.8rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
+  padding: 1rem 1rem 1rem 3rem;
+  background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  border-radius: 12px;
   color: white;
   font-size: 1rem;
   transition: all 0.3s;
 }
 
-.formGroup input:focus {
+.inputWrapper input:focus {
   outline: none;
-  border-color: var(--color-green);
+  border-color: #78ba49;
+  background: rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 3px rgba(120, 186, 73, 0.1);
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 1.2rem;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.eyeBtn:hover {
+  color: #cbd5e1;
+}
+
+/* Validacion de Password UX */
+.pwdStrengthContainer {
+  margin-top: 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 1.2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.strengthBarBg {
+  height: 6px;
   background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.strengthBarFill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.4s ease, background-color 0.4s ease;
+}
+
+.validationList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+}
+
+.validationList li {
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: color 0.3s;
+}
+
+.valid {
+  color: #78ba49;
+}
+
+.invalid {
+  color: #64748b;
+}
+
+/* Botones */
+.formActions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .saveBtn {
-  width: 100%;
-  padding: 1rem;
-  background: var(--color-green);
-  color: black;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 1rem 2rem;
+  background: #78ba49;
+  color: #070d19;
   border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  border-radius: 12px;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s;
-  margin-top: 1rem;
   box-shadow: 0 5px 15px rgba(120, 186, 73, 0.2);
 }
 
-.saveBtn:hover {
+.saveBtn:hover:not(:disabled) {
   background: #85cd51;
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(120, 186, 73, 0.4);
+  box-shadow: 0 10px 25px rgba(120, 186, 73, 0.4);
+}
+
+.saveBtn:disabled {
+  background: rgba(120, 186, 73, 0.3);
+  color: rgba(7, 13, 25, 0.5);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Responsividad */
+@media (max-width: 868px) {
+  .profileContainer {
+    grid-template-columns: 1fr;
+  }
+
+  .validationList {
+    grid-template-columns: 1fr;
+  }
+
+  .formActions {
+    justify-content: stretch;
+  }
+
+  .saveBtn {
+    width: 100%;
+    justify-content: center;
+  }
 }
