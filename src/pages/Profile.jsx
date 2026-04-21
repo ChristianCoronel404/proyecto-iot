@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   User, Lock, Shield, Mail, Key, Eye, EyeOff, Check, X, Save
 } from 'lucide-react';
 import styles from './Profile.module.css';
 
-export default function Profile({ user }) {
+export default function Profile({ user, onUserUpdate }) {
   // Simulamos datos si no vienen por prop
   const currentUser = user || { username: 'admin_drako', role: 'Admin', email: 'admin@ucb.edu.bo' };
 
@@ -15,6 +15,14 @@ export default function Profile({ user }) {
 
   const [showPassword, setShowPassword] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    setFormData({
+      username: currentUser.username,
+      password: ''
+    });
+  }, [currentUser.username]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value.replace(/\s/g, '') });
@@ -48,14 +56,43 @@ export default function Profile({ user }) {
     formData.username.trim().length >= 3 &&
     (!isUpdatingPassword || strengthScore === 5);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isFormValid) return;
 
-    // Simular guardado exitoso
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
-    setFormData({ ...formData, password: '' }); // Limpiamos la pass tras guardar
+    if (!currentUser?.id) {
+      setErrorMessage('No hay sesión activa para actualizar perfil');
+      return;
+    }
+
+    try {
+      setErrorMessage('');
+      const response = await fetch(`/api/profile/${currentUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'No se pudo actualizar el perfil');
+      }
+
+      if (typeof onUserUpdate === 'function') {
+        onUserUpdate(data.user);
+      }
+
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+      setFormData((prev) => ({ ...prev, password: '' }));
+    } catch (error) {
+      setErrorMessage(error.message || 'No se pudo actualizar el perfil');
+    }
   };
 
   return (
@@ -109,6 +146,8 @@ export default function Profile({ user }) {
               </span>
             )}
           </div>
+
+          {errorMessage && <p style={{ color: '#ef4444', marginTop: 0 }}>{errorMessage}</p>}
 
           <form onSubmit={handleSubmit} className={styles.formContent}>
 

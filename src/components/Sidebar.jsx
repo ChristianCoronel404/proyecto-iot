@@ -1,12 +1,15 @@
 import { LayoutDashboard, Users, Settings, LogOut, Cpu } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
-export default function Sidebar({ currentView, onViewChange, onLogout }) {
+export default function Sidebar({ isAdmin, currentView, onViewChange, onLogout }) {
   const menuItems = [
     { id: 'dashboard', label: 'Control Center', icon: LayoutDashboard },
-    { id: 'admin', label: 'Gestión de Accesos', icon: Users },
     { id: 'profile', label: 'Mi Cuenta', icon: Settings }
   ];
+
+  if (isAdmin) {
+    menuItems.splice(1, 0, { id: 'admin', label: 'Gestión de Accesos', icon: Users });
+  }
 
   return (
     <aside className={styles.sidebar}>

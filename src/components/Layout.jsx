@@ -1,7 +1,7 @@
 import Sidebar from './Sidebar';
 import styles from './Layout.module.css';
 
-export default function Layout({ user, currentView, onViewChange, onLogout, children }) {
+export default function Layout({ user, isAdmin, currentView, onViewChange, onLogout, children }) {
   const getTitle = () => {
     switch(currentView) {
       case 'dashboard': return 'Telemetría del Vehículo';
@@ -14,6 +14,8 @@ export default function Layout({ user, currentView, onViewChange, onLogout, chil
   return (
     <div className={styles.layoutContainer}>
       <Sidebar 
+        user={user}
+        isAdmin={isAdmin}
         currentView={currentView} 
         onViewChange={onViewChange} 
         onLogout={onLogout} 

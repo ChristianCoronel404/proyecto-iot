@@ -10,51 +10,61 @@ import {
 import Cube3D from '../components/Cube3D';
 import styles from './Dashboard.module.css';
 
-// --- DATOS SIMULADOS BASADOS EN TU ESQUEMA SQL ---
+const formatDateTimeLabels = (point) => {
+  if (!point || typeof point !== 'object') {
+    return point;
+  }
 
-const dht22Data = [
-  { time: '10:00', temp: 22.0, hum: 55 },
-  { time: '10:10', temp: 22.5, hum: 56 },
-  { time: '10:20', temp: 23.1, hum: 58 },
-  { time: '10:30', temp: 23.5, hum: 60 },
-  { time: '10:40', temp: 24.0, hum: 62 },
-  { time: '10:50', temp: 24.1, hum: 61 },
-  { time: '11:00', temp: 24.0, hum: 60 }
-];
+  let parsedDate = null;
 
-const gy50Data = [
-  { time: '10:00', gyroX: 12, gyroY: -18, gyroZ: 5 },
-  { time: '10:10', gyroX: 13, gyroY: -19, gyroZ: 5 },
-  { time: '10:20', gyroX: 15, gyroY: -20, gyroZ: 4 },
-  { time: '10:30', gyroX: 14, gyroY: -22, gyroZ: 2 },
-  { time: '10:40', gyroX: 10, gyroY: -15, gyroZ: 0 },
-  { time: '10:50', gyroX: 5, gyroY: -10, gyroZ: -2 },
-  { time: '11:00', gyroX: 15, gyroY: -20, gyroZ: 0 }
-];
+  if (point.created_at) {
+    const fromCreated = new Date(point.created_at);
+    if (!Number.isNaN(fromCreated.getTime())) {
+      parsedDate = fromCreated;
+    }
+  }
 
-const hcsr04Data = [
-  { time: '10:00', dist: 120 },
-  { time: '10:10', dist: 85 },
-  { time: '10:20', dist: 60 },
-  { time: '10:30', dist: 35 },
-  { time: '10:40', dist: 18 },
-  { time: '10:50', dist: 12 }, // Peligro colisión
-  { time: '11:00', dist: 45 }
-];
+  if (!parsedDate && point.fecha && point.hora) {
+    const fromFechaHora = new Date(`${point.fecha}T${point.hora}`);
+    if (!Number.isNaN(fromFechaHora.getTime())) {
+      parsedDate = fromFechaHora;
+    }
+  }
 
-const auditLogs = [
-  { id: 105, user: 'admin', action: 'ALERTA_FRENO', table: 'hcsr04_data', desc: 'Freno autónomo activado. Distancia < 15cm', time: '10:50:12', type: 'warning' },
-  { id: 104, user: 'system', action: 'CALIBRACION', table: 'gy50_data', desc: 'Offset de giroscopio recalculado', time: '10:15:00', type: 'info' },
-  { id: 103, user: 'alan_f', action: 'UPDATE', table: 'dht22_data', desc: 'Frecuencia de muestreo ajustada a 500ms', time: '09:45:22', type: 'success' },
-  { id: 102, user: 'admin', action: 'LOGIN', table: 'usuarios', desc: 'Inicio de sesión exitoso desde UCB-WiFi', time: '09:00:15', type: 'success' },
-];
+  if (!parsedDate && point.fecha) {
+    const fromFecha = new Date(point.fecha);
+    if (!Number.isNaN(fromFecha.getTime())) {
+      parsedDate = fromFecha;
+    }
+  }
+
+  const dateLabel = parsedDate
+    ? parsedDate.toLocaleDateString('es-BO', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : '--/--/----';
+
+  const timeLabel = parsedDate
+    ? parsedDate.toLocaleTimeString('es-BO', { hour12: false })
+    : (point.time || '--:--:--');
+
+  return {
+    ...point,
+    dateLabel,
+    time: timeLabel,
+    dateTimeLabel: `${dateLabel} ${timeLabel}`,
+  };
+};
 
 // Custom Tooltip para gráficas
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
+    const source = payload[0]?.payload || {};
+    const dateText = source.dateLabel || '--/--/----';
+    const timeText = source.time || label || '--:--:--';
+
     return (
       <div className={styles.customTooltip}>
-        <p className={styles.tooltipLabel}>{`Hora: ${label}`}</p>
+        <p className={styles.tooltipLabel}>{`Fecha: ${dateText}`}</p>
+        <p className={styles.tooltipLabel}>{`Hora: ${timeText}`}</p>
         {payload.map((entry, index) => (
           <p key={index} style={{ color: entry.color, margin: 0, fontSize: '0.9rem', fontWeight: 600 }}>
             {entry.name}: {entry.value}
@@ -67,30 +77,202 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function Dashboard() {
+  const [dht22Data, setDht22Data] = useState([]);
+  const [gy50Data, setGy50Data] = useState([]);
+  const [hcsr04Data, setHcsr04Data] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [realtimeDht, setRealtimeDht] = useState(null);
+  const [realtimeGyro, setRealtimeGyro] = useState(null);
+  const [realtimeDistance, setRealtimeDistance] = useState(null);
   const [gyro, setGyro] = useState({ x: 15, y: -20, z: 0 });
   const [currentDist, setCurrentDist] = useState(45);
 
-  // Animación libre suave base del cubo
+  const appendRealtimePoint = (setter, point) => {
+    if (!point || typeof point !== 'object') {
+      return;
+    }
+
+    const normalizedPoint = formatDateTimeLabels(point);
+
+    setter((prev) => {
+      const list = Array.isArray(prev) ? prev : [];
+      const last = list.length ? list[list.length - 1] : null;
+
+      // Evita duplicar el mismo paquete cuando llega tambien por dashboard-update.
+      if (last && last.id && normalizedPoint.id && String(last.id) === String(normalizedPoint.id)) {
+        return list;
+      }
+
+      return [...list, normalizedPoint].slice(-120);
+    });
+  };
+
+  const applyDashboardData = (payload) => {
+    setDht22Data(Array.isArray(payload?.dht22) ? payload.dht22.map(formatDateTimeLabels) : []);
+    setGy50Data(Array.isArray(payload?.gy50) ? payload.gy50.map(formatDateTimeLabels) : []);
+    setHcsr04Data(Array.isArray(payload?.hcsr04) ? payload.hcsr04.map(formatDateTimeLabels) : []);
+    setAuditLogs(Array.isArray(payload?.auditoria) ? payload.auditoria : []);
+  };
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setGyro(prev => ({
-        x: prev.x + (Math.random() > 0.5 ? 2 : -2),
-        y: prev.y + (Math.random() > 0.5 ? 2 : -2),
-        z: prev.z + (Math.random() > 0.5 ? 1 : -1)
-      }));
-      // Simular variación de distancia
-      setCurrentDist(prev => prev + (Math.random() > 0.5 ? 2 : -2));
+    let isMounted = true;
+    let reconnectTimer = null;
+    let events = null;
+
+    const loadDashboardData = async () => {
+      try {
+        const response = await fetch('/api/dashboard-data');
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'No se pudo cargar el dashboard');
+        }
+
+        if (isMounted) {
+          applyDashboardData(data);
+        }
+      } catch {
+        // Conserva el último estado válido si falla una lectura puntual.
+      }
+    };
+
+    const loadRealtimeState = async () => {
+      try {
+        const response = await fetch('/api/realtime-state');
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error();
+        }
+
+        if (isMounted) {
+          setRealtimeDht(data?.dht22 || null);
+          setRealtimeGyro(data?.gy50 || null);
+          setRealtimeDistance(data?.hcsr04 || null);
+        }
+      } catch {
+        // Usa fallback con historico si falla lectura del estado realtime.
+      }
+    };
+
+    const connectEvents = () => {
+      if (!isMounted) {
+        return;
+      }
+
+      events = new EventSource('/api/events');
+      events.onmessage = (event) => {
+        try {
+          const parsed = JSON.parse(event.data);
+          if (parsed.type === 'dashboard-update' && parsed.data) {
+            applyDashboardData(parsed.data);
+            return;
+          }
+
+          if (parsed.type === 'sensor-realtime' && parsed.data) {
+            const nextDht = parsed.data.dht22 || null;
+            const nextGyro = parsed.data.gy50 || null;
+            const nextDistance = parsed.data.hcsr04 || null;
+
+            setRealtimeDht(nextDht);
+            setRealtimeGyro(nextGyro);
+            setRealtimeDistance(nextDistance);
+
+            appendRealtimePoint(setDht22Data, nextDht);
+            appendRealtimePoint(setGy50Data, nextGyro);
+            appendRealtimePoint(setHcsr04Data, nextDistance);
+            return;
+          }
+
+          if (parsed.type === 'connected' && parsed.realtime) {
+            setRealtimeDht(parsed.realtime.dht22 || null);
+            setRealtimeGyro(parsed.realtime.gy50 || null);
+            setRealtimeDistance(parsed.realtime.hcsr04 || null);
+          }
+        } catch {
+          // Ignora mensajes incompletos.
+        }
+      };
+
+      events.onerror = () => {
+        if (events) {
+          events.close();
+          events = null;
+        }
+
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+        }
+
+        reconnectTimer = setTimeout(() => {
+          connectEvents();
+        }, 1200);
+      };
+    };
+
+    loadDashboardData();
+    loadRealtimeState();
+    connectEvents();
+
+    const realtimePoll = setInterval(() => {
+      loadRealtimeState();
     }, 1500);
-    return () => clearInterval(interval);
+
+    const historyPoll = setInterval(() => {
+      loadDashboardData();
+    }, 10000);
+
+    return () => {
+      isMounted = false;
+
+      if (events) {
+        events.close();
+      }
+
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+
+      clearInterval(realtimePoll);
+      clearInterval(historyPoll);
+    };
   }, []);
 
-  // Interacción fluida con el mouse
-  const handleMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left - rect.width / 2;
-    const y = e.clientY - rect.top - rect.height / 2;
-    setGyro({ x: -y * 0.2, y: x * 0.2, z: (x + y) * 0.05 });
-  };
+  useEffect(() => {
+    if (realtimeGyro) {
+      setGyro({
+        x: Number.isFinite(realtimeGyro.gyroX) ? realtimeGyro.gyroX : 15,
+        y: Number.isFinite(realtimeGyro.gyroY) ? realtimeGyro.gyroY : -20,
+        z: Number.isFinite(realtimeGyro.gyroZ) ? realtimeGyro.gyroZ : 0,
+      });
+      return;
+    }
+
+    if (!gy50Data.length) {
+      return;
+    }
+
+    const lastGyro = gy50Data[gy50Data.length - 1];
+    setGyro({
+      x: Number.isFinite(lastGyro.gyroX) ? lastGyro.gyroX : 15,
+      y: Number.isFinite(lastGyro.gyroY) ? lastGyro.gyroY : -20,
+      z: Number.isFinite(lastGyro.gyroZ) ? lastGyro.gyroZ : 0,
+    });
+  }, [realtimeGyro, gy50Data]);
+
+  useEffect(() => {
+    if (realtimeDistance && Number.isFinite(realtimeDistance.dist)) {
+      setCurrentDist(Math.round(realtimeDistance.dist));
+      return;
+    }
+
+    if (!hcsr04Data.length) {
+      return;
+    }
+
+    const lastDistance = hcsr04Data[hcsr04Data.length - 1]?.dist;
+    setCurrentDist(Number.isFinite(lastDistance) ? Math.round(lastDistance) : 45);
+  }, [realtimeDistance, hcsr04Data]);
+
+  const latestDht = realtimeDht || (dht22Data.length ? dht22Data[dht22Data.length - 1] : null);
 
   return (
     <div className={styles.dashboardContainer}>
@@ -113,8 +295,6 @@ export default function Dashboard() {
         {/* Widget 3D */}
         <div
           className={`${styles.widget} ${styles.cubeWidget}`}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={() => setGyro({ x: 15, y: -20, z: 0 })}
         >
           <div className={styles.widgetHeader}>
             <span className={styles.widgetTitle}>Cinemática (GY50)</span>
@@ -146,13 +326,13 @@ export default function Dashboard() {
           <div className={styles.weatherData}>
             <div className={styles.dataValue}>
               <ThermometerSun size={32} color="#78ba49" className={styles.valueIcon} />
-              <h3>24.0°C</h3>
+              <h3>{Number.isFinite(latestDht?.temp) ? `${latestDht.temp.toFixed(1)}°C` : '--'}</h3>
               <p>Temperatura</p>
             </div>
             <div className={styles.divider}></div>
             <div className={styles.dataValue}>
               <Droplets size={32} color="#0ea5e9" className={styles.valueIcon} />
-              <h3 style={{ color: '#0ea5e9' }}>60%</h3>
+              <h3 style={{ color: '#0ea5e9' }}>{Number.isFinite(latestDht?.hum) ? `${Math.round(latestDht.hum)}%` : '--'}</h3>
               <p>Humedad Rel.</p>
             </div>
           </div>
@@ -228,6 +408,13 @@ export default function Dashboard() {
                 </div>
               </div>
             ))}
+            {auditLogs.length === 0 && (
+              <div className={styles.auditItem}>
+                <div className={styles.auditDetails}>
+                  <p className={styles.auditDesc}>Sin eventos de auditoría disponibles.</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

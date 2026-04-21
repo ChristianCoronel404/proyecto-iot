@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Search, UserPlus, Shield, User, Lock, Key,
   Eye, EyeOff, Check, X, Edit, Slash, Activity, Save
@@ -6,11 +6,7 @@ import {
 import styles from './Admin.module.css';
 
 export default function Admin() {
-  const [users, setUsers] = useState([
-    { id: 1, username: 'admin_drako', rol: 'Admin', password_hash: '******', activo: true },
-    { id: 2, username: 'alan_f', rol: 'Admin', password_hash: '******', activo: true },
-    { id: 3, username: 'visitante_openhouse', rol: 'Usuario', password_hash: '******', activo: false },
-  ]);
+  const [users, setUsers] = useState([]);
 
   // Estados de Modales
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,6 +17,26 @@ export default function Admin() {
   const [showPassword, setShowPassword] = useState(false);
   const [newUser, setNewUser] = useState({ username: '', password: '', rol: 'Usuario' });
   const [editUser, setEditUser] = useState({ id: null, username: '', rol: 'Usuario', activo: true });
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const loadUsers = async () => {
+    try {
+      setErrorMessage('');
+      const response = await fetch('/api/users');
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'No se pudieron cargar usuarios');
+      }
+      setUsers(Array.isArray(data.users) ? data.users : []);
+    } catch (error) {
+      setErrorMessage(error.message || 'No se pudieron cargar usuarios');
+      setUsers([]);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
   // --- LÓGICA DE REGISTRO ---
   const pwd = newUser.password;
@@ -43,22 +59,36 @@ export default function Admin() {
 
   const isFormValid = newUser.username.trim().length >= 3 && strengthScore === 5;
 
-  const handleCreateUser = (e) => {
+  const handleCreateUser = async (e) => {
     e.preventDefault();
     if (!isFormValid) return;
 
-    const newId = users.length ? Math.max(...users.map(u => u.id)) + 1 : 1;
-    setUsers([...users, {
-      id: newId,
-      username: newUser.username,
-      rol: newUser.rol,
-      password_hash: '******',
-      activo: true
-    }]);
+    try {
+      setErrorMessage('');
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: newUser.username,
+          password: newUser.password,
+          rol: newUser.rol,
+        }),
+      });
 
-    setIsModalOpen(false);
-    setNewUser({ username: '', password: '', rol: 'Usuario' });
-    setShowPassword(false);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'No se pudo crear el usuario');
+      }
+
+      setUsers((prev) => [...prev, data.user]);
+      setIsModalOpen(false);
+      setNewUser({ username: '', password: '', rol: 'Usuario' });
+      setShowPassword(false);
+    } catch (error) {
+      setErrorMessage(error.message || 'No se pudo crear el usuario');
+    }
   };
 
   // --- LÓGICA DE EDICIÓN ---
@@ -67,16 +97,63 @@ export default function Admin() {
     setIsEditModalOpen(true);
   };
 
-  const handleUpdateUser = (e) => {
+  const handleUpdateUser = async (e) => {
     e.preventDefault();
     if (editUser.username.trim().length < 3) return;
 
-    setUsers(users.map(u => u.id === editUser.id ? editUser : u));
-    setIsEditModalOpen(false);
+    try {
+      setErrorMessage('');
+      const response = await fetch(`/api/users/${editUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: editUser.username,
+          rol: editUser.rol,
+          activo: editUser.activo,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'No se pudo actualizar el usuario');
+      }
+
+      setUsers(users.map(u => u.id === editUser.id ? data.user : u));
+      setIsEditModalOpen(false);
+    } catch (error) {
+      setErrorMessage(error.message || 'No se pudo actualizar el usuario');
+    }
   };
 
-  const toggleUserStatusFast = (id) => {
-    setUsers(users.map(u => u.id === id ? { ...u, activo: !u.activo } : u));
+  const toggleUserStatusFast = async (id) => {
+    const targetUser = users.find((u) => u.id === id);
+    if (!targetUser) {
+      return;
+    }
+
+    try {
+      setErrorMessage('');
+      const response = await fetch(`/api/users/${id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          activo: !targetUser.activo,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'No se pudo actualizar el estado');
+      }
+
+      setUsers(users.map(u => u.id === id ? data.user : u));
+    } catch (error) {
+      setErrorMessage(error.message || 'No se pudo actualizar el estado');
+    }
   };
 
   // Filtrado
@@ -93,6 +170,8 @@ export default function Admin() {
           <p className={styles.pageSubtitle}>Administración de usuarios del sistema Drako</p>
         </div>
       </div>
+
+      {errorMessage && <p style={{ color: '#ef4444', marginTop: 0 }}>{errorMessage}</p>}
 
       <div className={styles.actionBar}>
         <div className={styles.searchWrapper}>
