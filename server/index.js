@@ -264,7 +264,7 @@ const fetchDashboardData = async () => {
       LIMIT 120
     `),
     pool.query(`
-      SELECT id, gyro_x, gyro_y, gyro_z, temp_raw, raw_x, raw_y, raw_z, dispositivo_id, fecha, hora, created_at
+      SELECT id, gyro_x, gyro_y, gyro_z, raw_x, raw_y, raw_z, dispositivo_id, fecha, hora, created_at
       FROM gy50_data
       ORDER BY created_at DESC, id DESC
       LIMIT 120
@@ -446,10 +446,10 @@ app.post('/api/iot/stream', async (req, res) => {
 
         pool.query(
           `
-          INSERT INTO gy50_data (gyro_x, gyro_y, gyro_z, temp_raw, raw_x, raw_y, raw_z, dispositivo_id)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          INSERT INTO gy50_data (gyro_x, gyro_y, gyro_z, raw_x, raw_y, raw_z, dispositivo_id)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
         `,
-          [gyroX, gyroY, gyroZ, tempRaw, rawX, rawY, rawZ, dispositivoId],
+          [gyroX, gyroY, gyroZ, rawX, rawY, rawZ, dispositivoId],
         ).catch(() => {
           appendAuditLog({
             action: 'IOT_WRITE_ERROR',
@@ -581,10 +581,10 @@ app.post('/api/iot/:table', async (req, res) => {
 
       pool.query(
         `
-        INSERT INTO gy50_data (gyro_x, gyro_y, gyro_z, temp_raw, raw_x, raw_y, raw_z, dispositivo_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO gy50_data (gyro_x, gyro_y, gyro_z, raw_x, raw_y, raw_z, dispositivo_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
       `,
-        [gyroX, gyroY, gyroZ, tempRaw, rawX, rawY, rawZ, dispositivoId],
+        [gyroX, gyroY, gyroZ, rawX, rawY, rawZ, dispositivoId],
       ).catch(() => {
         appendAuditLog({
           action: 'IOT_WRITE_ERROR',
