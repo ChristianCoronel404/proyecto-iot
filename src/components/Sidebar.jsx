@@ -1,7 +1,7 @@
 import { LayoutDashboard, Users, Settings, LogOut, Cpu } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
-export default function Sidebar({ isAdmin, currentView, onViewChange, onLogout }) {
+export default function Sidebar({ isAdmin, currentView, onViewChange, onLogout, isOpen, onClose }) {
   const menuItems = [
     { id: 'dashboard', label: 'Control Center', icon: LayoutDashboard },
     { id: 'profile', label: 'Mi Cuenta', icon: Settings }
@@ -12,7 +12,7 @@ export default function Sidebar({ isAdmin, currentView, onViewChange, onLogout }
   }
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
 
       {/* Brand & System Status */}
       <div className={styles.brandSection}>
@@ -60,4 +60,4 @@ export default function Sidebar({ isAdmin, currentView, onViewChange, onLogout }
 
     </aside>
   );
-}
+}

@@ -4,6 +4,7 @@
   width: 100vw;
   background: radial-gradient(circle at top right, #0f1c35 0%, var(--color-dark) 50%);
   overflow: hidden;
+  position: relative;
 }
 
 .mainContent {
@@ -11,6 +12,8 @@
   padding: 2rem 3rem;
   overflow-y: auto;
   animation: fadeIn 0.4s ease-out;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes fadeIn {
@@ -23,12 +26,37 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hamburgerBtn {
+  display: none;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s ease;
+}
+
+.hamburgerBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .title {
   font-size: 2rem;
   color: white;
   font-weight: 700;
+  margin: 0;
 }
 
 .userBadge {
@@ -41,4 +69,41 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.sidebarOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 40;
+  animation: fadeInOverlay 0.3s ease-out;
+}
+
+@keyframes fadeInOverlay {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hamburgerBtn {
+    display: flex;
+  }
+
+  .mainContent {
+    padding: 1.5rem 1rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .roleText {
+    display: none;
+  }
 }

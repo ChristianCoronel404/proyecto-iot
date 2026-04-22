@@ -464,6 +464,17 @@
 }
 
 @media (max-width: 768px) {
+  .dashboardContainer {
+    padding: 0;
+  }
+
+  .mainTitle {
+    font-size: 1.5rem;
+  }
+
+  .subTitle {
+    font-size: 0.85rem;
+  }
 
   .cubeWidget,
   .weatherWidget,
@@ -489,4 +500,4 @@
     align-items: flex-start;
     gap: 1rem;
   }
-}
+}
