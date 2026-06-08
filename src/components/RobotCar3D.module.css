@@ -1,0 +1,201 @@
+.scene {
+  width: 220px;
+  height: 190px;
+  perspective: 700px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* Contenedor principal – aplica rotación isométrica base + tilt del giroscopio */
+.car {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.35s ease-out;
+}
+
+/* ── Chasis (cuerpo del robot) ── */
+.chassis {
+  position: absolute;
+  width: 100px;
+  height: 60px;
+  left: 60px;
+  top: 65px;
+  transform-style: preserve-3d;
+}
+
+.face {
+  position: absolute;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-sizing: border-box;
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* Cara superior (techo) */
+.faceTop {
+  width: 100px;
+  height: 60px;
+  background: rgba(30, 40, 65, 0.95);
+  transform: rotateX(-90deg) translateZ(-18px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 4px;
+}
+
+/* Cara frontal */
+.faceFront {
+  width: 100px;
+  height: 36px;
+  bottom: 0;
+  transform: translateZ(18px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Cara trasera */
+.faceBack {
+  width: 100px;
+  height: 36px;
+  bottom: 0;
+  transform: rotateY(180deg) translateZ(18px);
+}
+
+/* Cara lateral derecha */
+.faceRight {
+  width: 36px;
+  height: 36px;
+  bottom: 0;
+  left: 64px;
+  transform: rotateY(90deg) translateZ(18px);
+}
+
+/* Cara lateral izquierda */
+.faceLeft {
+  width: 36px;
+  height: 36px;
+  bottom: 0;
+  left: 0;
+  transform: rotateY(-90deg) translateZ(18px);
+}
+
+/* ── Etiqueta en el techo ── */
+.chassisLabel {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: monospace;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+/* ── Faros delanteros ── */
+.headlight {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 8px 2px rgba(255, 255, 200, 0.8);
+}
+
+/* ── Ruedas ── */
+.wheel {
+  position: absolute;
+  width: 22px;
+  height: 34px;
+  background: #1a1a2e;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+
+/* Cara lateral de la rueda (visible desde el lado) */
+.wheelSide {
+  position: absolute;
+  width: 34px;
+  height: 14px;
+  background: #111;
+  border: 1px solid rgba(255,255,255,0.15);
+  top: 10px;
+  border-radius: 2px;
+}
+
+.wheelFrontLeft  { left: 44px;  top: 38px;  transform: rotateX(-90deg) translateZ(12px); }
+.wheelFrontRight { left: 44px;  top: 75px;  transform: rotateX(-90deg) translateZ(12px); }
+.wheelBackLeft   { left: 150px; top: 38px;  transform: rotateX(-90deg) translateZ(12px); }
+.wheelBackRight  { left: 150px; top: 75px;  transform: rotateX(-90deg) translateZ(12px); }
+
+/* ── Barra de sensores ultrasónicos ── */
+.sensorBar {
+  position: absolute;
+  left: 52px;
+  top: 52px;
+  width: 116px;
+  height: 8px;
+  transform-style: preserve-3d;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px;
+  transform: translateZ(18px) translateY(14px);
+}
+
+.sensorDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #8b5cf6;
+  box-shadow: 0 0 6px #8b5cf6;
+  transition: box-shadow 0.3s ease;
+}
+
+.sensorDot.alarm {
+  background: #ef4444;
+  box-shadow: 0 0 10px #ef4444;
+}
+
+/* ── Flechas de dirección (SVG superpuesto) ── */
+.arrows {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ── Colores de estado del chasis ── */
+
+/* Cara frontal por estado */
+.faceFront.stateAvanzando {
+  background: rgba(120, 186, 73, 0.35);
+  box-shadow: inset 0 0 20px rgba(120, 186, 73, 0.3), 0 0 15px rgba(120, 186, 73, 0.4);
+}
+.faceFront.stateObstaculo {
+  background: rgba(239, 68, 68, 0.45);
+  box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.4), 0 0 15px rgba(239, 68, 68, 0.5);
+  animation: alertPulse 0.6s infinite;
+}
+.faceFront.stateCorriendo {
+  background: rgba(245, 158, 11, 0.35);
+  box-shadow: inset 0 0 20px rgba(245, 158, 11, 0.3);
+}
+.faceFront.stateSinSenal {
+  background: rgba(100, 116, 139, 0.2);
+  box-shadow: none;
+}
+
+/* Techo por estado */
+.faceTop.stateAvanzando { box-shadow: inset 0 0 25px rgba(120, 186, 73, 0.15); }
+.faceTop.stateObstaculo { box-shadow: inset 0 0 25px rgba(239, 68, 68, 0.2); }
+.faceTop.stateCorriendo { box-shadow: inset 0 0 25px rgba(245, 158, 11, 0.15); }
+
+@keyframes alertPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
