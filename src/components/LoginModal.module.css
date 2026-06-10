@@ -1,108 +1,416 @@
+/* ═══════════════════════════════════════════════════
+   LOGIN MODAL — Drako Control Center
+   ═══════════════════════════════════════════════════ */
+
 .overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
   z-index: 1000;
   display: flex;
   justify-content: center;
   align-items: center;
-  animation: fadeIn 0.3s ease;
+  animation: fadeIn 0.25s ease;
 }
 
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
 
+/* ── Contenedor del modal (dos paneles) ── */
 .modal {
-  background: linear-gradient(135deg, rgba(20, 30, 48, 0.9) 0%, rgba(36, 59, 85, 0.9) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  padding: 2.5rem;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  position: relative;
-  animation: slideUp 0.3s ease-out;
+  display: flex;
+  width: min(820px, 94vw);
+  min-height: 480px;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.06);
+  animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
 }
 
-.closeButton {
+/* ══════════════════════════════════════
+   PANEL IZQUIERDO — Branding
+   ══════════════════════════════════════ */
+.brandPanel {
+  flex: 0 0 45%;
+  background: linear-gradient(160deg, #0b1628 0%, #0f2010 60%, #0b1628 100%);
+  border-right: 1px solid rgba(120, 186, 73, 0.15);
+  padding: 2.2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Glow decorativo de fondo */
+.brandPanel::before {
+  content: '';
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: -60px;
+  left: -60px;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(120,186,73,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.brandTop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  margin-bottom: 1.4rem;
+}
+
+/* Órbita animada alrededor del robot */
+.brandOrbit {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.brandOrbitRing {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px dashed rgba(120, 186, 73, 0.4);
+  animation: orbitSpin 8s linear infinite;
+}
+
+.brandOrbitRing2 {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1px dashed rgba(120, 186, 73, 0.2);
+  animation: orbitSpin 5s linear infinite reverse;
+}
+
+@keyframes orbitSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.brandRobotIcon {
+  font-size: 2.4rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 12px rgba(120,186,73,0.5));
+  animation: floatBot 3s ease-in-out infinite;
+}
+
+@keyframes floatBot {
+  0%, 100% { transform: translateY(0);    }
+  50%       { transform: translateY(-5px); }
+}
+
+.brandName {
+  font-size: 2.4rem;
+  font-weight: 900;
+  letter-spacing: 8px;
+  margin: 0;
+  background: linear-gradient(135deg, #78ba49 0%, #a3e635 50%, #78ba49 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  font-family: 'Inter', monospace;
+}
+
+.brandTagline {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.55);
+  margin: 0;
+  line-height: 1.5;
+  letter-spacing: 0.5px;
+}
+
+.brandSep {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(120,186,73,0.3), transparent);
+  margin-bottom: 1.2rem;
+}
+
+/* Lista de sensores */
+.sensorList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.sensorRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(120, 186, 73, 0.04);
+  border: 1px solid rgba(120, 186, 73, 0.1);
+  border-left: 2px solid rgba(120, 186, 73, 0.35);
+  transition: background 0.2s;
+}
+
+.sensorRow:hover {
+  background: rgba(120, 186, 73, 0.09);
+}
+
+.sensorIcon {
+  font-size: 1.1rem;
+  width: 26px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.sensorText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.sensorName {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  font-family: monospace;
+  letter-spacing: 0.3px;
+}
+
+.sensorDesc {
+  font-size: 0.65rem;
+  color: rgba(255,255,255,0.38);
+  letter-spacing: 0.3px;
+}
+
+/* Footer de estado */
+.brandFooter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.brandDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #78ba49;
+  box-shadow: 0 0 8px #78ba49;
+  animation: pulseDot 1.5s infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1;   transform: scale(1);   }
+  50%       { opacity: 0.5; transform: scale(1.4); }
+}
+
+.brandOnline {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #78ba49;
+  font-family: monospace;
+}
+
+/* ══════════════════════════════════════
+   PANEL DERECHO — Formulario
+   ══════════════════════════════════════ */
+.formPanel {
+  flex: 1;
+  background: linear-gradient(135deg, rgba(15,23,42,0.98) 0%, rgba(22,36,60,0.98) 100%);
+  padding: 2.5rem 2.2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+.closeBtn {
+  position: absolute;
+  top: 14px;
+  right: 18px;
   background: transparent;
   border: none;
-  color: var(--color-text-muted);
-  font-size: 1.5rem;
+  color: rgba(255,255,255,0.35);
+  font-size: 1.6rem;
+  line-height: 1;
   cursor: pointer;
+  transition: color 0.2s;
+  padding: 0;
+}
+
+.closeBtn:hover { color: #fff; }
+
+.formHeader {
+  margin-bottom: 2rem;
+}
+
+.formTitle {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0 0 0.3rem;
+  color: #fff;
+}
+
+.formSub {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.45);
+  margin: 0;
+}
+
+/* Campos */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  letter-spacing: 0.5px;
+}
+
+.field input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 0.95rem;
+  transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+  box-sizing: border-box;
+}
+
+.field input:focus {
+  outline: none;
+  border-color: #78ba49;
+  background: rgba(255,255,255,0.08);
+  box-shadow: 0 0 0 3px rgba(120,186,73,0.12);
+}
+
+/* Wrapper contraseña + ojito */
+.passWrap {
+  position: relative;
+}
+
+.passWrap input {
+  padding-right: 2.8rem;
+}
+
+.eyeBtn {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.35);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
   transition: color 0.2s;
 }
 
-.closeButton:hover {
-  color: white;
-}
+.eyeBtn:hover { color: #78ba49; }
 
-.title {
-  text-align: center;
-  font-size: 1.8rem;
-  margin-bottom: 2rem;
-  font-family: var(--font-logo);
-  color: white;
-}
-
-.formGroup {
-  margin-bottom: 1.5rem;
-}
-
-.formGroup label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
-  color: var(--color-text-muted);
-}
-
-.formGroup input {
-  width: 100%;
-  padding: 0.8rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* Error */
+.errorBox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
   border-radius: 8px;
-  color: white;
-  font-size: 1rem;
-  transition: all 0.3s;
+  color: #fca5a5;
+  font-size: 0.82rem;
 }
 
-.formGroup input:focus {
-  outline: none;
-  border-color: var(--color-green);
-  background: rgba(255, 255, 255, 0.1);
-}
-
+/* Botón submit */
 .submitBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   width: 100%;
-  padding: 1rem;
-  background: var(--color-green);
-  color: #000;
+  padding: 0.85rem 1rem;
+  background: linear-gradient(135deg, #78ba49, #5a9e2f);
+  color: #fff;
   border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
+  border-radius: 10px;
+  font-size: 1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s;
-  margin-top: 1rem;
+  transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+  margin-top: 0.3rem;
+  letter-spacing: 0.3px;
 }
 
-.submitBtn:hover {
-  background: #85cd51;
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(120, 186, 73, 0.3);
+.submitBtn:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(120,186,73,0.35);
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Spinner */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Pie de página */
+.formHint {
+  margin-top: 1.5rem;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.2);
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .brandPanel { display: none; }
+  .modal      { width: 94vw; }
+  .formPanel  { padding: 2rem 1.5rem; }
 }

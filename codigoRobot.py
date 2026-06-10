@@ -1,6 +1,9 @@
 from machine import Pin, PWM, I2C
 import time
 import math
+import dht
+import ujson
+import urequests
 
 # ================================================================
 #  CONFIGURACION DE PINES
@@ -14,7 +17,60 @@ ENA = PWM(Pin(14), freq=1000)
 ENB = PWM(Pin(25), freq=1000)
 
 SPEED = 22000
-TURN_SPEED = 55000  # Subido a 55000 para que los motores tengan fuerza de vencer la friccion y girar
+TURN_SPEED = 45000  # Reducido un poco para que no gire tan violentamente y no patine
+
+# ── Telemetría ────────────────────────────────────────────────
+SERVER_URL    = "http://10.33.140.72:4000/api/iot/stream"
+last_send_ms  = 0
+SEND_INTERVAL = 150  # ms entre envíos (max ~6 Hz)
+
+# Estado de motores — se actualiza en cada función de movimiento
+motor_state = {
+    "motor_der": {"velocidad": 0, "direccion": "stop"},
+    "motor_izq": {"velocidad": 0, "direccion": "stop"},
+}
+
+# Últimas lecturas de sensores — expuestas para el envío de telemetría
+f_fixed_last  = 0.0
+f_mobile_last = 0.0
+dht_temp_last = None
+dht_hum_last  = None
+
+
+def send_telemetry():
+    """Envía un snapshot del estado al servidor. Fire-and-forget: ignora errores de red."""
+    global last_send_ms
+    now_ms = time.ticks_ms()
+    if time.ticks_diff(now_ms, last_send_ms) < SEND_INTERVAL:
+        return
+    last_send_ms = now_ms
+
+    payload_obj = {
+        "dispositivo_id": 1,
+        "hcsr04": {
+            "distancia_cm":       round(f_fixed_last, 2),
+            "distancia_movil_cm": round(f_mobile_last, 2),
+            "angulo_servo":       sweep_angle,
+        },
+        "gy50": {
+            "gyro_x": 0,
+            "gyro_y": 0,
+            "gyro_z": round(current_heading, 2),
+        },
+        "motores": motor_state,
+    }
+    if dht_temp_last is not None:
+        payload_obj["dht22"] = {"temperatura": dht_temp_last, "humedad": dht_hum_last or 0}
+
+    try:
+        r = urequests.post(
+            SERVER_URL,
+            data=ujson.dumps(payload_obj),
+            headers={"Content-Type": "application/json"},
+        )
+        r.close()
+    except Exception:
+        pass  # Nunca bloquear la navegación por un fallo de red
 
 # Sensor I2C: GY-50 (L3G4200D)
 i2c = I2C(0, scl=Pin(22), sda=Pin(21), freq=400000)
@@ -27,6 +83,10 @@ echo_fixed = Pin(17, Pin.IN)  # Sensor FIJO:  ECHO
 button = Pin(4, Pin.IN, Pin.PULL_UP)
 led = Pin(2, Pin.OUT)
 
+# DHT22 (Sensor de temperatura para batería)
+dht_sensor = dht.DHT22(Pin(15))
+last_dht_time = 0
+
 robot_on = False
 last_button = 1
 
@@ -37,20 +97,21 @@ L3G4200D_ADDR = 0x69
 gyro_bias_z = 0.0
 current_heading = 0.0
 last_gyro_time = 0
+GYRO_SCALE = 1.2  # Factor de correccion: Aumenta este numero si gira de menos, reducelo si gira de mas.
 
 
 def init_gyro():
     global L3G4200D_ADDR
     try:
-        # Configurar CTRL_REG1: Activar sensor, habilitar X, Y, Z, 100Hz
-        i2c.writeto_mem(L3G4200D_ADDR, 0x20, b"\x0f")
+        # Configurar CTRL_REG1: Activar sensor, X, Y, Z, 800Hz de lectura (0xCF) para no perder giros rapidos
+        i2c.writeto_mem(L3G4200D_ADDR, 0x20, b"\xcf")
         # Configurar CTRL_REG4: 2000 dps de escala
         i2c.writeto_mem(L3G4200D_ADDR, 0x23, b"\x20")
         print("[GYRO] OK en 0x69")
     except OSError:
         try:
             L3G4200D_ADDR = 0x68
-            i2c.writeto_mem(L3G4200D_ADDR, 0x20, b"\x0f")
+            i2c.writeto_mem(L3G4200D_ADDR, 0x20, b"\xcf")
             i2c.writeto_mem(L3G4200D_ADDR, 0x23, b"\x20")
             print("[GYRO] OK en 0x68")
         except OSError:
@@ -89,11 +150,9 @@ def update_heading():
         z_raw = data[0] | (data[1] << 8)
         if z_raw > 32767:
             z_raw -= 65536
-        rate = (z_raw * 0.070) - gyro_bias_z
+        rate = ((z_raw * 0.070) - gyro_bias_z) * GYRO_SCALE
         # Ignorar ruido pequeño
         if abs(rate) > 1.5:
-            # Multiplicamos por -1 si la orientación física del sensor está invertida
-            # Asumimos rotación estándar: izquierda = positivo, derecha = negativo
             current_heading += rate * dt
     except OSError:
         pass
@@ -103,7 +162,9 @@ def update_heading():
 #  UMBRALES (ajusta aqui si necesitas)
 # ================================================================
 DANGER_FIXED = 85  # cm — sensor fijo: frenar antes (aumentado para reaccionar a tiempo)
-DANGER_MOBILE = 65  # cm — sensor movil (lateral)
+DANGER_MOBILE = (
+    85  # cm — sensor movil (lateral aumentado para ver paredes diagonales antes)
+)
 TURN_CLEAR = 65  # cm — frente debe ver mas de esto para terminar el giro
 TURN_TIMEOUT = 4000  # ms — maximo tiempo girando antes de rendirse
 CAP = 350.0  # cm — maximo creible (3000 = ruido, se limita)
@@ -132,6 +193,8 @@ def stop():
     IN4.value(0)
     ENA.duty_u16(0)
     ENB.duty_u16(0)
+    motor_state["motor_der"] = {"velocidad": 0, "direccion": "stop"}
+    motor_state["motor_izq"] = {"velocidad": 0, "direccion": "stop"}
 
 
 target_heading_drive = 0.0
@@ -161,6 +224,8 @@ def forward():
     IN2.value(1)  # A Adelante
     IN3.value(0)
     IN4.value(1)  # B Adelante
+    motor_state["motor_der"] = {"velocidad": right_speed, "direccion": "adelante"}
+    motor_state["motor_izq"] = {"velocidad": left_speed,  "direccion": "adelante"}
 
 
 def backward():
@@ -170,6 +235,8 @@ def backward():
     IN2.value(0)  # A Atras
     IN3.value(1)
     IN4.value(0)  # B Atras
+    motor_state["motor_der"] = {"velocidad": SPEED, "direccion": "atras"}
+    motor_state["motor_izq"] = {"velocidad": SPEED, "direccion": "atras"}
 
 
 def spin_left():
@@ -179,6 +246,8 @@ def spin_left():
     IN2.value(1)  # A (Derecho) Adelante
     IN3.value(1)
     IN4.value(0)  # B (Izquierdo) Atras
+    motor_state["motor_der"] = {"velocidad": TURN_SPEED, "direccion": "adelante"}
+    motor_state["motor_izq"] = {"velocidad": TURN_SPEED, "direccion": "atras"}
 
 
 def spin_right():
@@ -188,6 +257,8 @@ def spin_right():
     IN2.value(0)  # A (Derecho) Atras
     IN3.value(0)
     IN4.value(1)  # B (Izquierdo) Adelante
+    motor_state["motor_der"] = {"velocidad": TURN_SPEED, "direccion": "atras"}
+    motor_state["motor_izq"] = {"velocidad": TURN_SPEED, "direccion": "adelante"}
 
 
 # ================================================================
@@ -314,18 +385,18 @@ def decide_and_escape():
 
     rdg, front_fixed = full_scan()
 
-    # Imprimir panorama completo
+    # Imprimir panorama completo ordenado de Izquierda a Derecha
     print(
-        "  0(DER):"
-        + str(round(rdg[0]))
-        + "  45(DD):"
-        + str(round(rdg[45]))
-        + "  90(FR):"
-        + str(round(rdg[90]))
+        "  180(IZQ):"
+        + str(round(rdg[180]))
         + "  135(DI):"
         + str(round(rdg[135]))
-        + "  180(IZQ):"
-        + str(round(rdg[180]))
+        + "  90(FR):"
+        + str(round(rdg[90]))
+        + "  45(DD):"
+        + str(round(rdg[45]))
+        + "  0(DER):"
+        + str(round(rdg[0]))
         + "  Fijo:"
         + str(round(front_fixed))
     )
@@ -429,6 +500,19 @@ while True:
 
     update_heading()  # Mantener giroscopio actualizado en el bucle principal
 
+    # --- DHT22 (Temperatura de Bateria 11.1V cada 5s) ---
+    global last_dht_time
+    now_ms = time.ticks_ms()
+    if time.ticks_diff(now_ms, last_dht_time) > 5000:
+        last_dht_time = now_ms
+        try:
+            dht_sensor.measure()
+            dht_temp_last = dht_sensor.temperature()
+            dht_hum_last  = dht_sensor.humidity()
+            print("[BATERIA] Temp: " + str(dht_temp_last) + "°C | Hum: " + str(dht_hum_last) + "%")
+        except OSError:
+            pass  # Ignorar fallos de lectura para no trabar el robot
+
     # --- BARRIDO CONTINUO (0, 45, 90, 135, 180) ---
     sweep_angle += sweep_dir
     if sweep_angle >= 180:
@@ -439,11 +523,15 @@ while True:
         sweep_dir = 45
 
     servo_angle(sweep_angle)
-    time.sleep_ms(80)  # Tiempo para el salto de 45 grados
+    time.sleep_ms(60)  # Tiempo reducido para escanear de lado a lado mas rapido
 
     # --- SENSADO CON AMBOS ULTRASONICOS ---
-    f_fixed = dist(trig_fixed, echo_fixed)
+    f_fixed  = dist(trig_fixed, echo_fixed)
     f_mobile = dist(trig, echo)
+
+    # Actualizar lecturas para telemetría
+    f_fixed_last  = f_fixed
+    f_mobile_last = f_mobile
 
     # Para los extremos laterales (0 y 180) no usar proyeccion frontal
     if sweep_angle == 0 or sweep_angle == 180:
@@ -508,3 +596,5 @@ while True:
         decide_and_escape()
     else:
         forward()
+
+    send_telemetry()

@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import dotenv from 'dotenv'
 import express from 'express'
 import http from 'http'
+import jwt from 'jsonwebtoken'
 import path from 'path'
 import pg from 'pg'
 import bcrypt from 'bcryptjs'
@@ -17,6 +18,9 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') })
 const { Pool } = pg
 const app  = express()
 const PORT = process.env.PORT || 4000
+
+const JWT_SECRET  = process.env.JWT_SECRET || 'drako-secret-fallback-change-me'
+const JWT_EXPIRES = '8h'
 
 if (!process.env.DATABASE_URL) {
   throw new Error('Falta DATABASE_URL en el archivo .env')
@@ -55,6 +59,7 @@ const realtimeState = {
   dht22: null,
   gy50: null,
   hcsr04: null,
+  motores: null,
   updatedAt: null,
 }
 
@@ -95,6 +100,29 @@ const createAuditEntry = async ({ usuarioId = null, accion, tablaAfectada = null
       [usuarioId, accion, tablaAfectada, registroId, descripcion],
     )
   } catch { /* No bloquea la operación principal si falla el log. */ }
+}
+
+// ── Middlewares JWT ───────────────────────────────────────────
+const authMiddleware = (req, res, next) => {
+  const header = req.headers.authorization
+  if (!header?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Token de autenticación requerido' })
+  }
+  try {
+    req.user = jwt.verify(header.slice(7), JWT_SECRET)
+    next()
+  } catch {
+    return res.status(401).json({ error: 'Token inválido o expirado. Vuelve a iniciar sesión.' })
+  }
+}
+
+const adminMiddleware = (req, res, next) => {
+  authMiddleware(req, res, () => {
+    if (String(req.user?.role || '').toLowerCase() !== 'admin') {
+      return res.status(403).json({ error: 'Acceso restringido a administradores' })
+    }
+    next()
+  })
 }
 
 const toNumber = (value) => {
@@ -157,7 +185,7 @@ const formatTimeLabel = (row) => {
 }
 
 const cloneDashboardCache  = () => ({ dht22: [...dashboardCache.dht22], gy50: [...dashboardCache.gy50], hcsr04: [...dashboardCache.hcsr04], auditoria: [...dashboardCache.auditoria] })
-const cloneRealtimeState   = () => ({ dht22: realtimeState.dht22, gy50: realtimeState.gy50, hcsr04: realtimeState.hcsr04, updatedAt: realtimeState.updatedAt })
+const cloneRealtimeState   = () => ({ dht22: realtimeState.dht22, gy50: realtimeState.gy50, hcsr04: realtimeState.hcsr04, motores: realtimeState.motores, updatedAt: realtimeState.updatedAt })
 const broadcastToBrowsers = (payload) => {
   const message = JSON.stringify(payload)
   for (const ws of browserClients) {
@@ -319,6 +347,21 @@ const processIotStream = async (payload = {}) => {
     }
   }
 
+  // ── Motores (Motor A derecho + Motor B izquierdo) ──
+  const motoresRaw = payload.motores
+  if (motoresRaw && typeof motoresRaw === 'object') {
+    const parseMotor = (m) => {
+      if (!m || typeof m !== 'object') return { velocidad: 0, direccion: 'stop' }
+      const vel = Number.isFinite(Number(m.velocidad)) ? Math.max(0, Math.min(65535, Number(m.velocidad))) : 0
+      const dir = ['adelante', 'atras', 'stop'].includes(m.direccion) ? m.direccion : 'stop'
+      return { velocidad: vel, direccion: dir }
+    }
+    realtimeState.motores = {
+      motorDer: parseMotor(motoresRaw.motor_der ?? motoresRaw.motorDer),
+      motorIzq: parseMotor(motoresRaw.motor_izq ?? motoresRaw.motorIzq),
+    }
+  }
+
   if (accepted.length > 0) {
     realtimeState.updatedAt = now.toISOString()
     pushRealtimeUpdate()
@@ -452,14 +495,16 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' })
     }
     await createAuditEntry({ usuarioId: user.id, accion: 'LOGIN', tablaAfectada: 'usuarios', registroId: user.id, descripcion: `Login exitoso: ${user.username}` })
-    return res.json({ id: user.id, username: user.username, role: displayRole(user.rol), email: `${user.username}@drako.local`, activo: user.activo, createdAt: user.created_at })
+    const role = displayRole(user.rol)
+    const token = jwt.sign({ id: user.id, username: user.username, role }, JWT_SECRET, { expiresIn: JWT_EXPIRES })
+    return res.json({ id: user.id, username: user.username, role, email: `${user.username}@drako.local`, activo: user.activo, createdAt: user.created_at, token })
   } catch (error) {
     return res.status(500).json({ error: error.message || 'No se pudo iniciar sesión' })
   }
 })
 
 // ── Gestión de usuarios ────────────────────────────────────
-app.get('/api/users', async (_req, res) => {
+app.get('/api/users', adminMiddleware, async (_req, res) => {
   try {
     const result = await pool.query(`SELECT id, username, rol, activo, created_at FROM usuarios ORDER BY id ASC`)
     return res.json({ users: result.rows.map((row) => ({ id: row.id, username: row.username, rol: displayRole(row.rol), password_hash: '******', activo: row.activo, created_at: row.created_at })) })
@@ -468,7 +513,7 @@ app.get('/api/users', async (_req, res) => {
   }
 })
 
-app.post('/api/users', async (req, res) => {
+app.post('/api/users', adminMiddleware, async (req, res) => {
   const username = String(req.body?.username || '').trim().replace(/\s/g, '')
   const password = String(req.body?.password || '')
   const rol      = normalizeRoleForDb(req.body?.rol)
@@ -488,7 +533,7 @@ app.post('/api/users', async (req, res) => {
   }
 })
 
-app.put('/api/users/:id', async (req, res) => {
+app.put('/api/users/:id', adminMiddleware, async (req, res) => {
   const userId   = Number.parseInt(req.params.id, 10)
   const username = String(req.body?.username || '').trim().replace(/\s/g, '')
   const rol      = normalizeRoleForDb(req.body?.rol)
@@ -512,7 +557,7 @@ app.put('/api/users/:id', async (req, res) => {
   }
 })
 
-app.patch('/api/users/:id/status', async (req, res) => {
+app.patch('/api/users/:id/status', adminMiddleware, async (req, res) => {
   const userId = Number.parseInt(req.params.id, 10)
   const activo = Boolean(req.body?.activo)
   if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ error: 'ID inválido' })
@@ -527,7 +572,7 @@ app.patch('/api/users/:id/status', async (req, res) => {
   }
 })
 
-app.put('/api/profile/:id', async (req, res) => {
+app.put('/api/profile/:id', authMiddleware, async (req, res) => {
   const userId   = Number.parseInt(req.params.id, 10)
   const username = String(req.body?.username || '').trim().replace(/\s/g, '')
   const password = String(req.body?.password || '')

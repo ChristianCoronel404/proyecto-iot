@@ -427,10 +427,274 @@
   transition: color 0.3s ease;
 }
 
+/* ─────────────────────────────────────────────────────────
+   GY-50: BRÚJULA + HEADING ACUMULADO
+   ───────────────────────────────────────────────────────── */
+.gyroWidget {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.gyroCompassSvg {
+  width: 100%;
+  max-width: 130px;
+  height: auto;
+  filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.2));
+}
+
+.gyroValues {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.gyroHeadingVal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.gyroHeadingNum {
+  font-size: 2rem;
+  font-weight: 800;
+  font-family: monospace;
+  color: #3b82f6;
+  line-height: 1;
+}
+
+.gyroHeadingLbl {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.gyroAxisRow {
+  display: flex;
+  gap: 0;
+  width: 100%;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 0.5rem;
+  justify-content: space-between;
+}
+
+.gyroAxisItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  gap: 2px;
+}
+
+.gyroAxisItem span {
+  font-size: 0.7rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gyroAxisItem strong {
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: monospace;
+}
+
+/* ─────────────────────────────────────────────────────────
+   HC-SR04: 5 ÁNGULOS DE ESCANEO
+   ───────────────────────────────────────────────────────── */
+.scanAnglesContainer {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.4rem;
+  padding-top: 0.2rem;
+}
+
+.scanFijoRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.6rem;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 8px;
+  margin-bottom: 0.2rem;
+}
+
+.scanFijoLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-family: monospace;
+}
+
+.scanFijoVal {
+  font-size: 0.85rem;
+  font-weight: 800;
+  font-family: monospace;
+}
+
+.scanBarsGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+}
+
+.scanBarRow {
+  display: grid;
+  grid-template-columns: 68px 1fr 48px;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.scanBarRow:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.scanBarActive {
+  background: rgba(255,255,255,0.05) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+.scanAngleLabel {
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-family: monospace;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  transition: color 0.3s;
+}
+
+.scanBarTrack {
+  height: 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.scanBarFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease, background 0.3s ease;
+}
+
+.scanBarDist {
+  font-size: 0.75rem;
+  font-weight: 800;
+  font-family: monospace;
+  text-align: right;
+  transition: color 0.3s;
+}
+
+.scanBarUnit {
+  font-size: 0.55rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-left: 1px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   MOTORES DC
+   ───────────────────────────────────────────────────────── */
+.motoresWidget {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  justify-content: center;
+}
+
+.motorCard {
+  background: rgba(0,0,0,0.2);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 0.8rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: background 0.2s;
+}
+
+.motorCard:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+.motorCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.motorLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  font-family: monospace;
+  letter-spacing: 0.3px;
+}
+
+.motorArrow {
+  font-size: 1.4rem;
+  line-height: 1;
+  font-weight: 700;
+  transition: color 0.3s;
+}
+
+.motorSpeedTrack {
+  height: 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.motorSpeedFill {
+  height: 100%;
+  border-radius: 6px;
+  min-width: 4px;
+}
+
+.motorCardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.motorDivider {
+  height: 1px;
+  background: rgba(255,255,255,0.05);
+}
+
 /* ── Gráficas ─────────────────────────────────────────────── */
 .chartWidgetMain {
   grid-column: span 8;
   height: 360px;
+}
+
+.chartWidgetSmall {
+  grid-column: span 4;
+  height: 340px;
+}
+
+.chartWidgetLarge {
+  grid-column: span 8;
+  height: 340px;
 }
 
 .chartWidgetHalf {
@@ -545,10 +809,12 @@
   .weatherWidget,
   .proximityWidget { grid-column: span 6; }
 
-  .robotWidget     { grid-column: span 6; }
-  .chartWidgetMain { grid-column: span 6; }
-  .chartWidgetHalf { grid-column: span 12; }
-  .auditWidget     { height: auto; }
+  .robotWidget      { grid-column: span 6; }
+  .chartWidgetMain  { grid-column: span 6; }
+  .chartWidgetSmall { grid-column: span 6; }
+  .chartWidgetLarge { grid-column: span 12; }
+  .chartWidgetHalf  { grid-column: span 12; }
+  .auditWidget      { height: auto; }
 }
 
 @media (max-width: 768px) {
@@ -558,6 +824,8 @@
   .proximityWidget,
   .robotWidget,
   .chartWidgetMain,
+  .chartWidgetSmall,
+  .chartWidgetLarge,
   .chartWidgetHalf,
   .auditWidget {
     grid-column: span 12;
