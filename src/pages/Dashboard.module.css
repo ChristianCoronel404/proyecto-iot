@@ -1,3 +1,7 @@
+/* ═══════════════════════════════════════════════════════════
+   DRAKO CONTROL CENTER — Dashboard Styles
+   ═══════════════════════════════════════════════════════════ */
+
 /* Layout Principal */
 .dashboardContainer {
   min-height: 100vh;
@@ -60,20 +64,9 @@
 }
 
 @keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-
-  50% {
-    transform: scale(1.5);
-    opacity: 0.5;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0%   { transform: scale(1);   opacity: 1;   }
+  50%  { transform: scale(1.5); opacity: 0.5; }
+  100% { transform: scale(1);   opacity: 1;   }
 }
 
 /* ── Barra de estado del robot ─────────────────────────── */
@@ -121,45 +114,7 @@
   letter-spacing: 0.5px;
 }
 
-/* ── Badges de 3 sensores HC-SR04 ──────────────────────── */
-.sensorTriple {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.6rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.distBadge {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.6rem 0.4rem;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(139, 92, 246, 0.4);
-  border-radius: 10px;
-  transition: border-color 0.3s ease;
-}
-
-.distBadgeLabel {
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  color: var(--color-text-muted, #94a3b8);
-  text-transform: uppercase;
-}
-
-.distBadgeValue {
-  font-size: 1rem;
-  font-weight: 800;
-  font-family: monospace;
-  transition: color 0.3s ease, text-shadow 0.3s ease;
-}
-
-/* Sistema de Grid */
+/* ── Sistema de Grid ─────────────────────────────────────── */
 .dashboardGrid {
   display: grid;
   grid-template-columns: repeat(12, 1fr);
@@ -167,7 +122,7 @@
   margin-bottom: 2rem;
 }
 
-/* Diseño base de Widgets */
+/* ── Diseño base de Widgets ──────────────────────────────── */
 .widget {
   background: rgba(15, 23, 42, 0.6);
   backdrop-filter: blur(12px);
@@ -187,7 +142,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.2rem;
 }
 
 .widgetTitle {
@@ -197,54 +152,115 @@
   letter-spacing: 0.5px;
 }
 
-/* Colores de Iconos Lucide */
-.iconBlue {
-  color: #3b82f6;
-}
+/* Colores de Iconos */
+.iconBlue   { color: #3b82f6; }
+.iconGreen  { color: #78ba49; }
+.iconPurple { color: #8b5cf6; }
+.iconMuted  { color: #64748b; }
 
-.iconGreen {
-  color: #78ba49;
-}
-
-.iconPurple {
-  color: #8b5cf6;
-}
-
-.iconMuted {
-  color: #64748b;
-}
-
-/* ── Widgets de sensores individuales (fila superior, 4 × 3 cols) ── */
+/* ── Widgets de sensores fila superior (4 × span 3) ─────── */
 .sensorWidget {
   grid-column: span 3;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  min-height: 370px;
-  cursor: default;
+  min-height: 340px;
 }
 
-/* Alias de compatibilidad (por si queda alguna referencia) */
-.cubeWidget {
-  grid-column: span 3;
+/* ── Widget Robot 3D ─────────────────────────────────────── */
+.robotWidget {
+  grid-column: span 4;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  min-height: 370px;
-  cursor: default;
+  min-height: 360px;
 }
 
+/* ─────────────────────────────────────────────────────────
+   DHT22: BARRAS ANIMADAS VERTICALES
+   ───────────────────────────────────────────────────────── */
+.tempHumBars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.5rem;
+  flex: 1;
+  padding: 0.5rem 0 0;
+}
+
+.barGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.barBigNum {
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-family: monospace;
+  transition: color 0.4s ease;
+  line-height: 1;
+}
+
+.barTrack {
+  position: relative;
+  width: 36px;
+  height: 160px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.barFill {
+  width: 100%;
+  border-radius: 18px;
+  transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  min-height: 4px;
+}
+
+.barTick {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  pointer-events: none;
+}
+
+.barLabel {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--color-text-muted, #94a3b8);
+  text-transform: uppercase;
+}
+
+.barsDivider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  opacity: 0.5;
+}
+
+/* ── GY-50: cubo 3D ─────────────────────────────────────── */
 .cubeControls {
   display: flex;
   justify-content: space-between;
-  margin-top: 1.5rem;
-  padding-top: 1.2rem;
+  margin-top: 1.2rem;
+  padding-top: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.axisData {
-  text-align: center;
-}
+.axisData { text-align: center; }
 
 .axisData span {
   display: block;
@@ -261,150 +277,160 @@
   font-family: monospace;
 }
 
-/* 2. Widget Clima (DHT22) — ahora usa .sensorWidget */
-.weatherWidget {
-  grid-column: span 3;
+/* ─────────────────────────────────────────────────────────
+   HC-SR04: ANILLOS DE PROXIMIDAD
+   ───────────────────────────────────────────────────────── */
+.proxDuo {
   display: flex;
-  flex-direction: column;
-}
-
-.weatherData {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 2rem;
   flex: 1;
+  align-items: center;
+  justify-content: space-around;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
 }
 
-.divider {
+.proxDivider {
   width: 1px;
-  height: 60%;
-  background: rgba(255, 255, 255, 0.1);
+  height: 120px;
+  background: rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
 }
 
-.dataValue {
-  text-align: center;
+.proxSensorBlock {
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-.valueIcon {
-  margin-bottom: 0.5rem;
-  filter: drop-shadow(0 0 10px currentColor);
-}
-
-.dataValue h3 {
-  font-size: 2.8rem;
-  color: white;
-  margin: 0 0 0.2rem 0;
-  font-weight: 800;
-  font-family: monospace;
-}
-
-.dataValue p {
-  color: var(--color-text-muted, #94a3b8);
-  font-size: 0.9rem;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-/* 3. Widget Proximidad (Sonar) — ahora usa .sensorWidget */
-.proximityWidget {
-  grid-column: span 3;
-  display: flex;
-  flex-direction: column;
-}
-
-.radarContainer {
+  gap: 0.75rem;
   flex: 1;
+}
+
+.proxRingsWrap {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.proxRing {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid var(--ring-color, #8b5cf6);
+  animation: ringExpand linear infinite;
+  opacity: 0;
+}
+
+.proxRing:nth-child(1) { width: 40px;  height: 40px;  }
+.proxRing:nth-child(2) { width: 65px;  height: 65px;  }
+.proxRing:nth-child(3) { width: 95px;  height: 95px;  }
+
+@keyframes ringExpand {
+  0%   { transform: scale(0.6); opacity: 0.8; }
+  100% { transform: scale(1.1); opacity: 0;   }
+}
+
+.proxCenter {
+  position: relative;
+  z-index: 2;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid #8b5cf6;
+  background: rgba(15, 23, 42, 0.9);
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-}
-
-.radarScreen {
-  position: relative;
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  background: repeating-radial-gradient(circle at center,
-      transparent,
-      transparent 19px,
-      rgba(139, 92, 246, 0.2) 20px), rgba(15, 23, 42, 0.8);
-  border: 2px solid rgba(139, 92, 246, 0.5);
-  display: flex;
   justify-content: center;
-  align-items: center;
-  overflow: hidden;
-  box-shadow: inset 0 0 20px rgba(139, 92, 246, 0.2);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* Línea de barrido del radar */
-.radarSweep {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  width: 50%;
-  height: 50%;
-  background: linear-gradient(90deg, rgba(139, 92, 246, 0.8) 0%, transparent 100%);
-  transform-origin: 0% 100%;
-  animation: sweep 2.5s linear infinite;
-  z-index: 1;
-}
-
-@keyframes sweep {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.radarValue {
-  font-size: 2rem;
+.proxCenterVal {
+  font-size: 1rem;
   font-weight: 800;
-  color: #fff;
-  z-index: 2;
   font-family: monospace;
-  text-shadow: 0 0 10px rgba(139, 92, 246, 0.8);
+  line-height: 1;
   transition: color 0.3s ease;
 }
 
-.radarValue.danger {
-  color: #ef4444;
-  text-shadow: 0 0 15px #ef4444;
-  animation: blink 0.5s infinite;
+.proxCenterUnit {
+  font-size: 0.55rem;
+  color: #94a3b8;
+  letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
-@keyframes blink {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.radarLabel {
-  margin-top: 1.5rem;
-  color: var(--color-text-muted, #94a3b8);
-  font-size: 0.9rem;
+.proxLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  font-family: monospace;
+  transition: color 0.3s ease;
 }
 
-/* Gráficos y Auditoría */
-.chartWidgetLarge {
+/* ─────────────────────────────────────────────────────────
+   SERVO: GAUGE CON AGUJA ANIMADA
+   ───────────────────────────────────────────────────────── */
+.servoWidgetContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.servoGaugeSvgLarge {
+  width: 100%;
+  max-width: 220px;
+  height: auto;
+}
+
+.servoStats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+  padding: 0.75rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: auto;
+}
+
+.servoStatItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  gap: 0.2rem;
+}
+
+.servoStatDivider {
+  width: 1px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.servoStatLabel {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.servoStatValue {
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-family: monospace;
+  transition: color 0.3s ease;
+}
+
+/* ── Gráficas ─────────────────────────────────────────────── */
+.chartWidgetMain {
   grid-column: span 8;
-  height: 400px;
+  height: 360px;
 }
 
 .chartWidgetHalf {
@@ -412,10 +438,10 @@
   height: 350px;
 }
 
-/* Panel de Auditoría */
+/* ── Panel de Auditoría ──────────────────────────────────── */
 .auditWidget {
-  grid-column: span 4;
-  height: 400px;
+  grid-column: span 12;
+  height: 340px;
   display: flex;
   flex-direction: column;
 }
@@ -426,61 +452,30 @@
   padding-right: 5px;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
-/* Custom Scrollbar para el log */
-.auditList::-webkit-scrollbar {
-  width: 6px;
-}
-
-.auditList::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-}
-
-.auditList::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
+.auditList::-webkit-scrollbar { width: 6px; }
+.auditList::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
+.auditList::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
 
 .auditItem {
   display: flex;
   gap: 1rem;
-  padding: 1rem;
+  padding: 0.85rem 1rem;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 12px;
   border-left: 2px solid transparent;
   transition: background 0.2s ease;
 }
 
-.auditItem:hover {
-  background: rgba(255, 255, 255, 0.03);
-}
+.auditItem:hover { background: rgba(255, 255, 255, 0.03); }
+.auditItem:nth-child(1) { border-left-color: #ef4444; }
+.auditItem:nth-child(2) { border-left-color: #3b82f6; }
+.auditItem:nth-child(3) { border-left-color: #78ba49; }
 
-.auditItem:nth-child(1) {
-  border-left-color: #ef4444;
-}
-
-.auditItem:nth-child(2) {
-  border-left-color: #3b82f6;
-}
-
-.auditItem:nth-child(3) {
-  border-left-color: #78ba49;
-}
-
-.auditItem:nth-child(4) {
-  border-left-color: #78ba49;
-}
-
-.auditIconWrapper {
-  margin-top: 2px;
-}
-
-.auditDetails {
-  flex: 1;
-}
+.auditIconWrapper { margin-top: 2px; }
+.auditDetails     { flex: 1; }
 
 .auditTopRow {
   display: flex;
@@ -504,7 +499,7 @@
 .auditDesc {
   font-size: 0.85rem;
   color: #cbd5e1;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.4rem 0;
   line-height: 1.4;
 }
 
@@ -515,7 +510,7 @@
   font-family: monospace;
 }
 
-/* Tooltip UI Custom */
+/* ── Tooltip Custom ─────────────────────────────────────── */
 .customTooltip {
   background: rgba(15, 23, 42, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -533,46 +528,39 @@
   padding-bottom: 0.5rem;
 }
 
-/* Responsive */
-@media (max-width: 1200px) {
+/* ── Compatibilidad con clases legadas ───────────────────── */
+.weatherWidget,
+.proximityWidget,
+.cubeWidget {
+  grid-column: span 3;
+  display: flex;
+  flex-direction: column;
+  min-height: 340px;
+}
 
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 1200px) {
   .sensorWidget,
   .cubeWidget,
   .weatherWidget,
-  .proximityWidget {
-    grid-column: span 6;
-  }
+  .proximityWidget { grid-column: span 6; }
 
-  .chartWidgetLarge {
-    grid-column: span 12;
-  }
-
-  .auditWidget {
-    grid-column: span 12;
-    height: 300px;
-  }
+  .robotWidget     { grid-column: span 6; }
+  .chartWidgetMain { grid-column: span 6; }
+  .chartWidgetHalf { grid-column: span 12; }
+  .auditWidget     { height: auto; }
 }
 
 @media (max-width: 768px) {
-
   .sensorWidget,
   .cubeWidget,
   .weatherWidget,
   .proximityWidget,
-  .chartWidgetLarge,
-  .auditWidget,
-  .chartWidgetHalf {
+  .robotWidget,
+  .chartWidgetMain,
+  .chartWidgetHalf,
+  .auditWidget {
     grid-column: span 12;
-  }
-
-  .weatherData {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .divider {
-    width: 60%;
-    height: 1px;
   }
 
   .dashHeader {
@@ -590,4 +578,7 @@
     width: 100%;
     justify-content: flex-end;
   }
+
+  .tempHumBars { gap: 1rem; }
+  .proxDuo     { gap: 1rem; }
 }

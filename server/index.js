@@ -140,8 +140,12 @@ const normalizeHcsr04Payload = (p = {}) => ({
   tiempoEcho:     Number.isFinite(Number(p.tiempo_echo ?? p.tiempoEcho ?? p.echo_time))
     ? Number.parseInt(p.tiempo_echo ?? p.tiempoEcho ?? p.echo_time, 10)
     : null,
-  distanciaIzqCm: toNumber(p.distancia_izq_cm ?? p.distanciaIzqCm ?? null),
-  distanciaDerCm: toNumber(p.distancia_der_cm ?? p.distanciaDerCm ?? null),
+  distanciaIzqCm:  toNumber(p.distancia_izq_cm  ?? p.distanciaIzqCm  ?? null),
+  distanciaDerCm:  toNumber(p.distancia_der_cm  ?? p.distanciaDerCm  ?? null),
+  distanciaMovilCm: toNumber(p.distancia_movil_cm ?? p.distanciaMovilCm ?? p.movil ?? null),
+  anguloServo:     Number.isFinite(Number(p.angulo_servo ?? p.anguloServo ?? p.servo_angle))
+    ? Math.max(0, Math.min(180, Number.parseInt(p.angulo_servo ?? p.anguloServo ?? p.servo_angle, 10)))
+    : null,
 })
 
 const formatTimeLabel = (row) => {
@@ -189,6 +193,7 @@ const fetchDashboardData = async () => {
     `),
     pool.query(`
       SELECT id, tiempo_echo, distancia_cm, distancia_izq_cm, distancia_der_cm,
+             distancia_movil_cm, angulo_servo,
              dispositivo_id, fecha, hora, created_at
       FROM hcsr04_data ORDER BY created_at DESC, id DESC LIMIT 120
     `),
@@ -214,9 +219,11 @@ const fetchDashboardData = async () => {
 
   const hcsr04 = hcsr04Result.rows.reverse().map((row) => ({
     id: row.id, time: formatTimeLabel(row),
-    dist:    toNumber(row.distancia_cm),
-    distIzq: toNumber(row.distancia_izq_cm),
-    distDer: toNumber(row.distancia_der_cm),
+    dist:       toNumber(row.distancia_cm),
+    distIzq:    toNumber(row.distancia_izq_cm),
+    distDer:    toNumber(row.distancia_der_cm),
+    distMovil:  toNumber(row.distancia_movil_cm),
+    anguloServo: row.angulo_servo !== null && row.angulo_servo !== undefined ? Number(row.angulo_servo) : null,
     tiempoEcho: row.tiempo_echo,
     dispositivoId: row.dispositivo_id, fecha: row.fecha, hora: row.hora, created_at: row.created_at,
   }))
@@ -287,25 +294,27 @@ const processIotStream = async (payload = {}) => {
     }
   }
 
-  // ── HC-SR04 (3 sensores) ──
+  // ── HC-SR04 (sensor fijo + sensor móvil/servo) ──
   const ultraRaw = payload.hcsr04
   if (ultraRaw && typeof ultraRaw === 'object') {
-    const { distanciaCm, tiempoEcho, distanciaIzqCm, distanciaDerCm } = normalizeHcsr04Payload(ultraRaw)
-    const hasAnyReading = Number.isFinite(distanciaCm) || Number.isFinite(distanciaIzqCm) || Number.isFinite(distanciaDerCm)
+    const { distanciaCm, tiempoEcho, distanciaIzqCm, distanciaDerCm, distanciaMovilCm, anguloServo } = normalizeHcsr04Payload(ultraRaw)
+    const hasAnyReading = Number.isFinite(distanciaCm) || Number.isFinite(distanciaIzqCm) || Number.isFinite(distanciaDerCm) || Number.isFinite(distanciaMovilCm)
 
     if (hasAnyReading) {
       accepted.push('hcsr04_data')
       realtimeState.hcsr04 = {
         id: `rt-${now.getTime()}-hc`, time: timeLabel,
-        dist:    Number.isFinite(distanciaCm)    ? distanciaCm    : null,
-        distIzq: Number.isFinite(distanciaIzqCm) ? distanciaIzqCm : null,
-        distDer: Number.isFinite(distanciaDerCm) ? distanciaDerCm : null,
+        dist:       Number.isFinite(distanciaCm)       ? distanciaCm       : null,
+        distIzq:    Number.isFinite(distanciaIzqCm)    ? distanciaIzqCm    : null,
+        distDer:    Number.isFinite(distanciaDerCm)    ? distanciaDerCm    : null,
+        distMovil:  Number.isFinite(distanciaMovilCm)  ? distanciaMovilCm  : null,
+        anguloServo: anguloServo !== null              ? anguloServo        : null,
         tiempoEcho, dispositivoId, created_at: now.toISOString(),
       }
       pool.query(
-        `INSERT INTO hcsr04_data (tiempo_echo, distancia_cm, distancia_izq_cm, distancia_der_cm, dispositivo_id)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [tiempoEcho, distanciaCm, distanciaIzqCm, distanciaDerCm, dispositivoId],
+        `INSERT INTO hcsr04_data (tiempo_echo, distancia_cm, distancia_izq_cm, distancia_der_cm, distancia_movil_cm, angulo_servo, dispositivo_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [tiempoEcho, distanciaCm, distanciaIzqCm, distanciaDerCm, distanciaMovilCm, anguloServo, dispositivoId],
       ).catch(() => appendAuditLog({ action: 'IOT_WRITE_ERROR', table: 'hcsr04_data', desc: 'Falló persistencia HC-SR04', type: 'warning' }))
     }
   }
@@ -394,20 +403,27 @@ app.post('/api/iot/:table', async (req, res) => {
     }
 
     if (table === 'hcsr04_data') {
-      const { distanciaCm, tiempoEcho, distanciaIzqCm, distanciaDerCm } = normalizeHcsr04Payload(payload)
-      const hasAnyReading = Number.isFinite(distanciaCm) || Number.isFinite(distanciaIzqCm) || Number.isFinite(distanciaDerCm)
+      const { distanciaCm, tiempoEcho, distanciaIzqCm, distanciaDerCm, distanciaMovilCm, anguloServo } = normalizeHcsr04Payload(payload)
+      const hasAnyReading = Number.isFinite(distanciaCm) || Number.isFinite(distanciaIzqCm) || Number.isFinite(distanciaDerCm) || Number.isFinite(distanciaMovilCm)
       if (!hasAnyReading) {
         return res.status(400).json({ error: 'Sin lecturas válidas de HC-SR04' })
       }
       realtimeState.hcsr04 = {
         id: `rt-${now.getTime()}`, time: timeLabel,
-        dist: distanciaCm, distIzq: distanciaIzqCm, distDer: distanciaDerCm,
+        dist:        distanciaCm,
+        distIzq:     distanciaIzqCm,
+        distDer:     distanciaDerCm,
+        distMovil:   distanciaMovilCm,
+        anguloServo: anguloServo,
         tiempoEcho, dispositivoId, created_at: now.toISOString(),
       }
       realtimeState.updatedAt = now.toISOString()
       pushRealtimeUpdate()
-      pool.query(`INSERT INTO hcsr04_data (tiempo_echo, distancia_cm, distancia_izq_cm, distancia_der_cm, dispositivo_id) VALUES ($1,$2,$3,$4,$5)`, [tiempoEcho, distanciaCm, distanciaIzqCm, distanciaDerCm, dispositivoId])
-        .catch(() => appendAuditLog({ action: 'IOT_WRITE_ERROR', table: 'hcsr04_data', desc: 'Falló persistencia HC-SR04', type: 'warning' }))
+      pool.query(
+        `INSERT INTO hcsr04_data (tiempo_echo, distancia_cm, distancia_izq_cm, distancia_der_cm, distancia_movil_cm, angulo_servo, dispositivo_id)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [tiempoEcho, distanciaCm, distanciaIzqCm, distanciaDerCm, distanciaMovilCm, anguloServo, dispositivoId],
+      ).catch(() => appendAuditLog({ action: 'IOT_WRITE_ERROR', table: 'hcsr04_data', desc: 'Falló persistencia HC-SR04', type: 'warning' }))
       return res.status(202).json({ ok: true, table })
     }
 
