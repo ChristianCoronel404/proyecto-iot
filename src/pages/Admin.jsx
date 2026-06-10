@@ -3,6 +3,7 @@ import {
   Search, UserPlus, Shield, User, Lock, Key,
   Eye, EyeOff, Check, X, Edit, Slash, Activity, Save
 } from 'lucide-react';
+import { authFetch } from '../utils/auth';
 import styles from './Admin.module.css';
 
 export default function Admin() {
@@ -22,7 +23,7 @@ export default function Admin() {
   const loadUsers = async () => {
     try {
       setErrorMessage('');
-      const response = await fetch('/api/users');
+      const response = await authFetch('/api/users');
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || 'No se pudieron cargar usuarios');
@@ -65,16 +66,10 @@ export default function Admin() {
 
     try {
       setErrorMessage('');
-      const response = await fetch('/api/users', {
+      const response = await authFetch('/api/users', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: newUser.username,
-          password: newUser.password,
-          rol: newUser.rol,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: newUser.username, password: newUser.password, rol: newUser.rol }),
       });
 
       const data = await response.json();
@@ -103,16 +98,10 @@ export default function Admin() {
 
     try {
       setErrorMessage('');
-      const response = await fetch(`/api/users/${editUser.id}`, {
+      const response = await authFetch(`/api/users/${editUser.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: editUser.username,
-          rol: editUser.rol,
-          activo: editUser.activo,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: editUser.username, rol: editUser.rol, activo: editUser.activo }),
       });
 
       const data = await response.json();
@@ -135,14 +124,10 @@ export default function Admin() {
 
     try {
       setErrorMessage('');
-      const response = await fetch(`/api/users/${id}/status`, {
+      const response = await authFetch(`/api/users/${id}/status`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          activo: !targetUser.activo,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: !targetUser.activo }),
       });
 
       const data = await response.json();

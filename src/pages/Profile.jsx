@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   User, Lock, Shield, Mail, Key, Eye, EyeOff, Check, X, Save
 } from 'lucide-react';
+import { authFetch } from '../utils/auth';
 import styles from './Profile.module.css';
 
 export default function Profile({ user, onUserUpdate }) {
@@ -67,15 +68,10 @@ export default function Profile({ user, onUserUpdate }) {
 
     try {
       setErrorMessage('');
-      const response = await fetch(`/api/profile/${currentUser.id}`, {
+      const response = await authFetch(`/api/profile/${currentUser.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          password: formData.password,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: formData.username, password: formData.password }),
       });
 
       const data = await response.json();

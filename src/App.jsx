@@ -5,8 +5,8 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
 import Profile from './pages/Profile';
+import { getUserCookie, loginCookies, logoutCookies, setUserCookie } from './utils/auth';
 
-const STORAGE_USER_KEY = 'drako.user';
 const STORAGE_VIEW_KEY = 'drako.view';
 
 const isAdminUser = (user) => {
@@ -14,14 +14,7 @@ const isAdminUser = (user) => {
   return role === 'admin' || role === 'administrador total';
 };
 
-const readStoredUser = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_USER_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
+const readStoredUser = () => getUserCookie();
 
 const readStoredView = () => {
   try {
@@ -42,11 +35,8 @@ function App() {
     if (!user) {
       setCurrentView('landing');
       try {
-        localStorage.removeItem(STORAGE_USER_KEY);
         localStorage.removeItem(STORAGE_VIEW_KEY);
-      } catch {
-        // Ignora errores de acceso a storage.
-      }
+      } catch { /* ignore */ }
       return;
     }
 
@@ -61,16 +51,11 @@ function App() {
   }, [user, currentView, isAdmin]);
 
   useEffect(() => {
-    if (!user) {
-      return;
-    }
-
+    if (!user) return;
     try {
-      localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
+      setUserCookie(user);
       localStorage.setItem(STORAGE_VIEW_KEY, currentView);
-    } catch {
-      // Ignora errores de acceso a storage.
-    }
+    } catch { /* ignore */ }
   }, [user, currentView]);
 
   const handleViewChange = (nextView) => {
@@ -88,12 +73,14 @@ function App() {
   };
 
   const handleLogin = (userData) => {
+    loginCookies(userData);   // limpia todas las cookies del dominio y setea auth_drako
     setUser(userData);
     setShowLoginModal(false);
     setCurrentView('dashboard');
   };
 
   const handleLogout = () => {
+    logoutCookies();          // limpia todas las cookies del dominio
     setUser(null);
     setCurrentView('landing');
     setShowLoginModal(false);

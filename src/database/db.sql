@@ -35,6 +35,8 @@ CREATE TABLE public.hcsr04_data (
   created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
   distancia_izq_cm numeric,
   distancia_der_cm numeric,
+  distancia_movil_cm numeric,
+  angulo_servo smallint CHECK (angulo_servo >= 0 AND angulo_servo <= 180),
   CONSTRAINT hcsr04_data_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.usuarios (
