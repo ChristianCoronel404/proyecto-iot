@@ -6,12 +6,13 @@ import {
 import {
   Compass, ThermometerSun, Droplets, Radar,
   Activity, ShieldCheck, Terminal, Cpu, AlertTriangle,
-  ArrowUp, ArrowLeft, ArrowRight, CircleSlash, Radio
+  ArrowUp, ArrowLeft, ArrowRight, CircleSlash, Radio, Settings
 } from 'lucide-react';
 import Cube3D from '../components/Cube3D';
 import RobotCar3D from '../components/RobotCar3D';
 import styles from './Dashboard.module.css';
 
+// ── Helpers ──────────────────────────────────────────────────
 const formatDateTimeLabels = (point) => {
   if (!point || typeof point !== 'object') return point;
   let parsedDate = null;
@@ -52,34 +53,231 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
-// ── Indicador de un sensor de distancia (izq/centro/der) ──
-const DistanceBadge = ({ label, value, threshold, color }) => {
-  const isAlarm = Number.isFinite(value) && value > 0 && value < threshold;
+// ── Color dinámico de temperatura ──
+const tempColor = (t) => {
+  if (!Number.isFinite(t)) return '#64748b';
+  if (t < 15) return '#0ea5e9';
+  if (t < 22) return '#22d3ee';
+  if (t < 28) return '#78ba49';
+  if (t < 35) return '#f59e0b';
+  return '#ef4444';
+};
+const humColor = (h) => {
+  if (!Number.isFinite(h)) return '#64748b';
+  if (h < 30) return '#f59e0b';
+  if (h < 50) return '#22d3ee';
+  if (h < 70) return '#0ea5e9';
+  return '#3b82f6';
+};
+
+// ── Widget DHT22: barras animadas verticales ──
+const TempHumBars = ({ temp, hum }) => {
+  const tVal = Number.isFinite(temp) ? temp : null;
+  const hVal = Number.isFinite(hum)  ? hum  : null;
+  const tPct = tVal !== null ? Math.min(100, Math.max(2, (tVal / 50) * 100)) : 0;
+  const hPct = hVal !== null ? Math.min(100, Math.max(2, hVal))               : 0;
+  const tColor = tempColor(tVal);
+  const hColor = humColor(hVal);
+
   return (
-    <div className={styles.distBadge} style={{ borderColor: isAlarm ? '#ef4444' : 'rgba(139,92,246,0.4)' }}>
-      <span className={styles.distBadgeLabel}>{label}</span>
-      <span
-        className={styles.distBadgeValue}
-        style={{ color: isAlarm ? '#ef4444' : (color || '#fff'), textShadow: isAlarm ? '0 0 8px #ef4444' : 'none' }}
-      >
-        {Number.isFinite(value) && value > 0 ? `${value} cm` : '— cm'}
-      </span>
+    <div className={styles.tempHumBars}>
+      {/* Temperatura */}
+      <div className={styles.barGroup}>
+        <span className={styles.barBigNum} style={{ color: tColor }}>
+          {tVal !== null ? `${tVal.toFixed(1)}°` : '—'}
+        </span>
+        <div className={styles.barTrack}>
+          <div
+            className={styles.barFill}
+            style={{
+              height: `${tPct}%`,
+              background: `linear-gradient(to top, ${tColor}88, ${tColor})`,
+              boxShadow: `0 0 18px ${tColor}66`,
+            }}
+          />
+          {[25, 50, 75].map(tick => (
+            <div key={tick} className={styles.barTick} style={{ bottom: `${tick}%` }} />
+          ))}
+        </div>
+        <span className={styles.barLabel}>
+          <ThermometerSun size={12} style={{ color: tColor }} /> TEMP
+        </span>
+      </div>
+
+      {/* Divisor central con icono */}
+      <div className={styles.barsDivider}>
+        <Activity size={18} color="#64748b" />
+      </div>
+
+      {/* Humedad */}
+      <div className={styles.barGroup}>
+        <span className={styles.barBigNum} style={{ color: hColor }}>
+          {hVal !== null ? `${Math.round(hVal)}%` : '—'}
+        </span>
+        <div className={styles.barTrack}>
+          <div
+            className={styles.barFill}
+            style={{
+              height: `${hPct}%`,
+              background: `linear-gradient(to top, ${hColor}88, ${hColor})`,
+              boxShadow: `0 0 18px ${hColor}66`,
+            }}
+          />
+          {[25, 50, 75].map(tick => (
+            <div key={tick} className={styles.barTick} style={{ bottom: `${tick}%` }} />
+          ))}
+        </div>
+        <span className={styles.barLabel}>
+          <Droplets size={12} style={{ color: hColor }} /> HUM
+        </span>
+      </div>
     </div>
   );
 };
 
-export default function Dashboard() {
-  const [dht22Data,       setDht22Data]       = useState([]);
-  const [gy50Data,        setGy50Data]        = useState([]);
-  const [hcsr04Data,      setHcsr04Data]      = useState([]);
-  const [auditLogs,       setAuditLogs]       = useState([]);
-  const [realtimeDht,     setRealtimeDht]     = useState(null);
-  const [realtimeGyro,    setRealtimeGyro]    = useState(null);
-  const [realtimeDistance,setRealtimeDistance]= useState(null);
-  const [gyro,            setGyro]            = useState({ x: 15, y: -20, z: 0 });
-  const [currentDist,     setCurrentDist]     = useState(45);
+// ── Sensor de proximidad individual (anillos pulsantes) ──
+const ProximitySensor = ({ label, value, threshold, color }) => {
+  const hasVal   = Number.isFinite(value) && value > 0;
+  const isAlarm  = hasVal && value < threshold;
+  const ringMs   = !hasVal ? 3000 : value < 15 ? 400 : value < 30 ? 800 : value < 60 ? 1500 : 3000;
+  const activeColor = isAlarm ? '#ef4444' : (color || '#8b5cf6');
 
-  // ── Estado de navegación del robot (inferido de las distancias) ──
+  return (
+    <div className={styles.proxSensorBlock}>
+      <div className={styles.proxRingsWrap} style={{ '--ring-color': activeColor }}>
+        <div className={styles.proxRing} style={{ animationDuration: `${ringMs}ms`, animationDelay: '0ms' }} />
+        <div className={styles.proxRing} style={{ animationDuration: `${ringMs}ms`, animationDelay: `${ringMs * 0.33}ms` }} />
+        <div className={styles.proxRing} style={{ animationDuration: `${ringMs}ms`, animationDelay: `${ringMs * 0.66}ms` }} />
+        <div className={styles.proxCenter} style={{ borderColor: activeColor, boxShadow: `0 0 12px ${activeColor}66` }}>
+          <span className={styles.proxCenterVal} style={{ color: activeColor }}>
+            {hasVal ? value.toFixed(0) : '—'}
+          </span>
+          <span className={styles.proxCenterUnit}>{hasVal ? 'cm' : ''}</span>
+        </div>
+      </div>
+      <span className={styles.proxLabel} style={{ color: activeColor }}>{label}</span>
+    </div>
+  );
+};
+
+// ── Gauge del servo con aguja animada ──
+const ServoGaugeWidget = ({ angle, distMovil }) => {
+  const a = Number.isFinite(angle) ? Math.max(0, Math.min(180, angle)) : null;
+
+  const toXY = (deg) => ({
+    x: (100 + 80 * Math.cos((deg * Math.PI) / 180)).toFixed(3),
+    y: (100 - 80 * Math.sin((deg * Math.PI) / 180)).toFixed(3),
+  });
+
+  const endPt = a !== null && a > 0.5 ? toXY(a) : null;
+  const arcColor = a === null ? '#64748b'
+    : Math.abs(a - 90) < 30 ? '#8b5cf6'
+    : Math.abs(a - 90) < 60 ? '#f59e0b'
+    : '#f97316';
+
+  const needleRot = a !== null ? -a : -90;
+
+  const ticks = [
+    { deg: 0,   label: 'DER',    x: 188, y: 107 },
+    { deg: 45,  label: '45°',   x: 158, y: 46  },
+    { deg: 90,  label: 'FRENTE', x: 100, y: 12  },
+    { deg: 135, label: '135°',  x: 42,  y: 46  },
+    { deg: 180, label: 'IZQ',   x: 12,  y: 107 },
+  ];
+
+  return (
+    <div className={styles.servoWidgetContent}>
+      <svg viewBox="0 0 200 110" className={styles.servoGaugeSvgLarge}>
+        <defs>
+          <filter id="servoGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+        </defs>
+
+        {/* Arc de fondo */}
+        <path d="M 20,100 A 80,80 0 0 1 180,100"
+              fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="10" strokeLinecap="round" />
+
+        {/* Arc relleno */}
+        {endPt && (
+          <path d={`M 180,100 A 80,80 0 0 0 ${endPt.x},${endPt.y}`}
+                fill="none" stroke={arcColor} strokeWidth="10" strokeLinecap="round"
+                filter="url(#servoGlow)" />
+        )}
+
+        {/* Marcas de ángulo */}
+        {ticks.map(({ deg }) => {
+          const inner = toXY(deg);
+          const outerPt = {
+            x: (100 + 88 * Math.cos((deg * Math.PI) / 180)).toFixed(3),
+            y: (100 - 88 * Math.sin((deg * Math.PI) / 180)).toFixed(3),
+          };
+          return (
+            <line key={deg}
+                  x1={inner.x} y1={inner.y} x2={outerPt.x} y2={outerPt.y}
+                  stroke={deg === 90 ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)'}
+                  strokeWidth={deg === 90 ? 2 : 1.5} />
+          );
+        })}
+
+        {/* Etiquetas */}
+        {ticks.map(({ deg, label, x, y }) => (
+          <text key={deg} x={x} y={y} fontSize="7" fill="rgba(255,255,255,0.4)" textAnchor="middle">
+            {label}
+          </text>
+        ))}
+
+        {/* Aguja con transición CSS */}
+        <g style={{
+          transformOrigin: '100px 100px',
+          transform: `rotate(${needleRot}deg)`,
+          transition: 'transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        }}>
+          <line x1="100" y1="100" x2="176" y2="100"
+                stroke="#c4b5fd" strokeWidth="2.5" strokeLinecap="round"
+                filter="url(#servoGlow)" />
+          <circle cx="176" cy="100" r="3.5" fill="#c4b5fd" />
+        </g>
+
+        {/* Centro */}
+        <circle cx="100" cy="100" r="7" fill="#8b5cf6" />
+        <circle cx="100" cy="100" r="3.5" fill="#c4b5fd" />
+      </svg>
+
+      <div className={styles.servoStats}>
+        <div className={styles.servoStatItem}>
+          <span className={styles.servoStatLabel}>ÁNGULO</span>
+          <span className={styles.servoStatValue} style={{ color: arcColor }}>
+            {a !== null ? `${a}°` : '—'}
+          </span>
+        </div>
+        <div className={styles.servoStatDivider} />
+        <div className={styles.servoStatItem}>
+          <span className={styles.servoStatLabel}>DIST. MÓVIL</span>
+          <span className={styles.servoStatValue} style={{ color: '#78ba49' }}>
+            {Number.isFinite(distMovil) ? `${distMovil} cm` : '—'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Dashboard principal ───────────────────────────────────────
+export default function Dashboard() {
+  const [dht22Data,        setDht22Data]        = useState([]);
+  const [gy50Data,         setGy50Data]         = useState([]);
+  const [hcsr04Data,       setHcsr04Data]       = useState([]);
+  const [auditLogs,        setAuditLogs]        = useState([]);
+  const [realtimeDht,      setRealtimeDht]      = useState(null);
+  const [realtimeGyro,     setRealtimeGyro]     = useState(null);
+  const [realtimeDistance, setRealtimeDistance] = useState(null);
+  const [gyro,             setGyro]             = useState({ x: 15, y: -20, z: 0 });
+  const [currentDist,      setCurrentDist]      = useState(45);
+  const [currentDistMovil, setCurrentDistMovil] = useState(null);
+
+  // Estado de navegación inferido de distancias
   const robotStatus = useMemo(() => {
     const dist    = realtimeDistance?.dist;
     const distIzq = realtimeDistance?.distIzq;
@@ -181,7 +379,6 @@ export default function Dashboard() {
         if (reconnectTimer) clearTimeout(reconnectTimer);
         reconnectTimer = setTimeout(connectWs, 1200);
       };
-
       events.onerror = () => events?.close();
     };
 
@@ -200,6 +397,7 @@ export default function Dashboard() {
     };
   }, []);
 
+  // Sincronizar giroscopio
   useEffect(() => {
     if (realtimeGyro) {
       setGyro({
@@ -218,14 +416,13 @@ export default function Dashboard() {
     });
   }, [realtimeGyro, gy50Data]);
 
+  // Sincronizar distancias
   useEffect(() => {
-    if (realtimeDistance && Number.isFinite(realtimeDistance.dist)) {
-      setCurrentDist(Math.round(realtimeDistance.dist));
-      return;
-    }
-    if (!hcsr04Data.length) return;
-    const last = hcsr04Data[hcsr04Data.length - 1]?.dist;
-    setCurrentDist(Number.isFinite(last) ? Math.round(last) : 45);
+    const src = realtimeDistance || (hcsr04Data.length ? hcsr04Data[hcsr04Data.length - 1] : null);
+    if (!src) return;
+    if (Number.isFinite(src.dist))      setCurrentDist(Math.round(src.dist));
+    if (Number.isFinite(src.distMovil)) setCurrentDistMovil(Math.round(src.distMovil));
+    else setCurrentDistMovil(null);
   }, [realtimeDistance, hcsr04Data]);
 
   const latestDht  = realtimeDht || (dht22Data.length ? dht22Data[dht22Data.length - 1] : null);
@@ -247,7 +444,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* ── Barra de estado del robot ── */}
+      {/* Barra de estado del robot */}
       <div className={styles.robotStatusBar} style={{ borderColor: robotStatus.color }}>
         <StatusIcon size={20} style={{ color: robotStatus.color, flexShrink: 0 }} />
         <div className={styles.robotStatusText}>
@@ -259,35 +456,25 @@ export default function Dashboard() {
         <div className={styles.robotStatusSensors}>
           <Radio size={14} style={{ color: realtimeDistance ? '#8b5cf6' : '#64748b' }} />
           <span style={{ color: realtimeDistance ? '#8b5cf6' : '#64748b' }}>
-            {realtimeDistance ? 'HC-SR04 · 3 sensores activos' : 'HC-SR04 · sin señal'}
+            {realtimeDistance
+              ? `HC-SR04 · fijo + móvil${Number.isFinite(realtimeDistance?.anguloServo) ? ` · servo ${realtimeDistance.anguloServo}°` : ''}`
+              : 'HC-SR04 · sin señal'}
           </span>
         </div>
       </div>
 
       <div className={styles.dashboardGrid}>
 
-        {/* ── SENSOR 1: DHT22 ── */}
+        {/* ── WIDGET 1: DHT22 — Barras animadas ── */}
         <div className={`${styles.widget} ${styles.sensorWidget}`}>
           <div className={styles.widgetHeader}>
             <span className={styles.widgetTitle}>DHT22 · Ambiente</span>
-            <Activity size={20} className={styles.iconGreen} />
+            <ThermometerSun size={20} className={styles.iconGreen} />
           </div>
-          <div className={styles.weatherData}>
-            <div className={styles.dataValue}>
-              <ThermometerSun size={28} color="#78ba49" className={styles.valueIcon} />
-              <h3>{Number.isFinite(latestDht?.temp) ? `${latestDht.temp.toFixed(1)}°C` : '--'}</h3>
-              <p>Temperatura</p>
-            </div>
-            <div className={styles.divider} />
-            <div className={styles.dataValue}>
-              <Droplets size={28} color="#0ea5e9" className={styles.valueIcon} />
-              <h3 style={{ color: '#0ea5e9' }}>{Number.isFinite(latestDht?.hum) ? `${Math.round(latestDht.hum)}%` : '--'}</h3>
-              <p>Humedad</p>
-            </div>
-          </div>
+          <TempHumBars temp={latestDht?.temp} hum={latestDht?.hum} />
         </div>
 
-        {/* ── SENSOR 2: GY-50 ── */}
+        {/* ── WIDGET 2: GY-50 — Cubo 3D ── */}
         <div className={`${styles.widget} ${styles.sensorWidget}`}>
           <div className={styles.widgetHeader}>
             <span className={styles.widgetTitle}>GY-50 · Giroscopio</span>
@@ -310,30 +497,43 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── SENSOR 3: HC-SR04 × 3 ── */}
+        {/* ── WIDGET 3: HC-SR04 — Sensores fijo + móvil ── */}
         <div className={`${styles.widget} ${styles.sensorWidget}`}>
           <div className={styles.widgetHeader}>
-            <span className={styles.widgetTitle}>HC-SR04 · Sonar × 3</span>
+            <span className={styles.widgetTitle}>HC-SR04 · Fijo + Móvil</span>
             <Radar size={20} className={styles.iconPurple} />
           </div>
-          <div className={styles.radarContainer}>
-            <div className={styles.radarScreen}>
-              <div className={styles.radarSweep} />
-              <span className={`${styles.radarValue} ${currentDist < 20 ? styles.danger : ''}`}>
-                {currentDist}cm
-              </span>
-            </div>
-            <p className={styles.radarLabel}>Frontal</p>
-          </div>
-          <div className={styles.sensorTriple}>
-            <DistanceBadge label="IZQ"    value={latestDist?.distIzq} threshold={15} color="#f59e0b" />
-            <DistanceBadge label="CENTRO" value={latestDist?.dist}    threshold={20} color="#8b5cf6" />
-            <DistanceBadge label="DER"    value={latestDist?.distDer} threshold={15} color="#f59e0b" />
+          <div className={styles.proxDuo}>
+            <ProximitySensor
+              label="FIJO"
+              value={latestDist?.dist}
+              threshold={20}
+              color="#8b5cf6"
+            />
+            <div className={styles.proxDivider} />
+            <ProximitySensor
+              label="MÓVIL"
+              value={latestDist?.distMovil}
+              threshold={20}
+              color="#78ba49"
+            />
           </div>
         </div>
 
-        {/* ── ROBOT 3D: Dinámica del carro ── */}
+        {/* ── WIDGET 4: Servo — Gauge dedicado ── */}
         <div className={`${styles.widget} ${styles.sensorWidget}`}>
+          <div className={styles.widgetHeader}>
+            <span className={styles.widgetTitle}>Servo · Pseudomotor</span>
+            <Settings size={20} className={styles.iconPurple} />
+          </div>
+          <ServoGaugeWidget
+            angle={latestDist?.anguloServo}
+            distMovil={latestDist?.distMovil}
+          />
+        </div>
+
+        {/* ── ROBOT 3D ── */}
+        <div className={`${styles.widget} ${styles.robotWidget}`}>
           <div className={styles.widgetHeader}>
             <span className={styles.widgetTitle}>Drako · Dinámica 3D</span>
             <ArrowUp size={20} style={{ color: robotStatus.color }} />
@@ -346,7 +546,7 @@ export default function Dashboard() {
             distIzq={latestDist?.distIzq}
             distDer={latestDist?.distDer}
           />
-          <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+          <div style={{ marginTop: '0.75rem', textAlign: 'center' }}>
             <span style={{
               display: 'inline-block',
               padding: '0.3rem 1rem',
@@ -365,8 +565,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Gráfica combinada: Temp & Humedad */}
-        <div className={`${styles.widget} ${styles.chartWidgetLarge}`}>
+        {/* ── Gráfica: Temp & Humedad ── */}
+        <div className={`${styles.widget} ${styles.chartWidgetMain}`}>
           <div className={styles.widgetHeader}>
             <span className={styles.widgetTitle}>Análisis Ambiental Correlacionado</span>
             <ThermometerSun size={20} className={styles.iconMuted} />
@@ -393,7 +593,60 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Panel de Auditoría */}
+        {/* ── Gráfica: Estabilidad GY-50 ── */}
+        <div className={`${styles.widget} ${styles.chartWidgetHalf}`}>
+          <div className={styles.widgetHeader}>
+            <span className={styles.widgetTitle}>Estabilidad Inercial (GY-50)</span>
+            <Activity size={20} className={styles.iconMuted} />
+          </div>
+          <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={gy50Data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="time" stroke="rgba(255,255,255,0.4)" fontSize={11} tickMargin={10} />
+                <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend iconType="plainline" wrapperStyle={{ fontSize: '12px' }} />
+                <Line type="monotone" dataKey="gyroX" stroke="#f59e0b" strokeWidth={2} dot={false} name="Pitch (X)" />
+                <Line type="monotone" dataKey="gyroY" stroke="#ef4444" strokeWidth={2} dot={false} name="Yaw (Y)"   />
+                <Line type="monotone" dataKey="gyroZ" stroke="#3b82f6" strokeWidth={2} dot={false} name="Roll (Z)"  />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* ── Gráfica: Histórico de Proximidad ── */}
+        <div className={`${styles.widget} ${styles.chartWidgetHalf}`}>
+          <div className={styles.widgetHeader}>
+            <span className={styles.widgetTitle}>Histórico de Proximidad (Fijo + Móvil)</span>
+            <Radar size={20} className={styles.iconMuted} />
+          </div>
+          <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={hcsr04Data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorDistFijo" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#8b5cf6" stopOpacity={0.5} />
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}   />
+                  </linearGradient>
+                  <linearGradient id="colorDistMovil" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#78ba49" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#78ba49" stopOpacity={0}   />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="time" stroke="rgba(255,255,255,0.4)" fontSize={11} tickMargin={10} />
+                <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} reversed={true} />
+                <Tooltip content={<CustomTooltip />} />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Area type="step" dataKey="dist"     stroke="#8b5cf6" strokeWidth={2}   fill="url(#colorDistFijo)"  name="Fijo cm"  />
+                <Area type="step" dataKey="distMovil" stroke="#78ba49" strokeWidth={1.5} fill="url(#colorDistMovil)" name="Móvil cm" connectNulls />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* ── Panel de Auditoría ── */}
         <div className={`${styles.widget} ${styles.auditWidget}`}>
           <div className={styles.widgetHeader}>
             <span className={styles.widgetTitle}>Auditoría del Sistema</span>
@@ -424,65 +677,6 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Gráfica: Estabilidad Inercial GY-50 */}
-        <div className={`${styles.widget} ${styles.chartWidgetHalf}`}>
-          <div className={styles.widgetHeader}>
-            <span className={styles.widgetTitle}>Estabilidad Inercial (GY-50)</span>
-            <Activity size={20} className={styles.iconMuted} />
-          </div>
-          <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={gy50Data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="time" stroke="rgba(255,255,255,0.4)" fontSize={11} tickMargin={10} />
-                <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend iconType="plainline" wrapperStyle={{ fontSize: '12px' }} />
-                <Line type="monotone" dataKey="gyroX" stroke="#f59e0b" strokeWidth={2} dot={false} name="Pitch (X)" />
-                <Line type="monotone" dataKey="gyroY" stroke="#ef4444" strokeWidth={2} dot={false} name="Yaw (Y)"   />
-                <Line type="monotone" dataKey="gyroZ" stroke="#3b82f6" strokeWidth={2} dot={false} name="Roll (Z)"  />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Gráfica: Histórico de Proximidad (3 sensores) */}
-        <div className={`${styles.widget} ${styles.chartWidgetHalf}`}>
-          <div className={styles.widgetHeader}>
-            <span className={styles.widgetTitle}>Histórico de Proximidad (× 3)</span>
-            <Radar size={20} className={styles.iconMuted} />
-          </div>
-          <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={hcsr04Data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorDistCentro" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#8b5cf6" stopOpacity={0.5} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}   />
-                  </linearGradient>
-                  <linearGradient id="colorDistIzq" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#f59e0b" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}   />
-                  </linearGradient>
-                  <linearGradient id="colorDistDer" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#f97316" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#f97316" stopOpacity={0}   />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="time" stroke="rgba(255,255,255,0.4)" fontSize={11} tickMargin={10} />
-                {/* reversed: 0 cm arriba = colisión inminente */}
-                <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} reversed={true} />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Area type="step" dataKey="dist"    stroke="#8b5cf6" strokeWidth={2} fill="url(#colorDistCentro)" name="Centro (cm)" />
-                <Area type="step" dataKey="distIzq" stroke="#f59e0b" strokeWidth={1.5} fill="url(#colorDistIzq)"   name="Izq (cm)"    connectNulls />
-                <Area type="step" dataKey="distDer" stroke="#f97316" strokeWidth={1.5} fill="url(#colorDistDer)"   name="Der (cm)"    connectNulls />
-              </AreaChart>
-            </ResponsiveContainer>
           </div>
         </div>
 
