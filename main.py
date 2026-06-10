@@ -12,8 +12,8 @@ import ujson
 # ================================================================
 #  CONFIGURACION DE RED Y SERVICIOS
 # ================================================================
-SSID     = "CHIMUELITO_5G"
-PASSWORD = "RoSii5y49."
+SSID     = "POCO F8 Pro"
+PASSWORD = "del1al8xd"
 
 DISPOSITIVO_ID = 1
 
@@ -34,7 +34,7 @@ SUPABASE_HEADERS = {
 
 # WebSocket al servidor Node.js (para dashboard en tiempo real)
 # >>> CAMBIA ESTA IP a la IP LAN de tu PC que ejecuta npm run dev <<<
-WS_HOST = "192.168.1.19"
+WS_HOST = "10.116.20.72"
 WS_PORT = 4000
 WS_PATH = "/ws"
 
@@ -79,7 +79,11 @@ last_button = 1
 wifi = network.WLAN(network.STA_IF)
 
 def conectar_wifi():
+    wifi.active(False)
+    time.sleep_ms(500)
     wifi.active(True)
+    wifi.disconnect()
+    time.sleep_ms(500)
     if not wifi.isconnected():
         wifi.connect(SSID, PASSWORD)
         print("[WIFI] Conectando a " + SSID + "...")
@@ -101,7 +105,7 @@ def asegurar_wifi():
             pass
 
 # ================================================================
-#  CLIENTE WEBSOCKET (RFC 6455)
+#  CLIENTE WEBSOCKET (RFC 6455) — simple y robusto para MicroPython
 # ================================================================
 class WSClient:
     def __init__(self):
@@ -109,6 +113,7 @@ class WSClient:
 
     def connect(self, host, port, path="/ws"):
         self._close()
+        s = None
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             addr = socket.getaddrinfo(host, port)[0][-1]
@@ -135,12 +140,16 @@ class WSClient:
                 s.close()
                 print("[WS] Handshake rechazado")
                 return False
-            s.settimeout(2)
+            # Timeout corto para drain post-send (1s es suficiente)
+            s.settimeout(1)
             self._sock = s
-            print("[WS] Conectado a ws://{}:{}{}".format(host, port, path))
+            print("[WS] Conectado")
             return True
         except Exception as e:
             print("[WS] Error:", e)
+            if s:
+                try: s.close()
+                except: pass
             return False
 
     def send(self, text):
@@ -158,6 +167,11 @@ class WSClient:
             for i in range(length):
                 masked[i] = data[i] ^ mask[i % 4]
             self._sock.send(header + mask + bytes(masked))
+            # Drenar lo que el servidor responda para no llenar su buffer
+            try:
+                self._sock.recv(256)
+            except:
+                pass  # Timeout es completamente normal
             return True
         except Exception as e:
             print("[WS] Send error:", e)
@@ -166,14 +180,10 @@ class WSClient:
 
     def _close(self):
         if self._sock:
-            try:
-                self._sock.send(b"\x88\x80\x00\x00\x00\x00")
-            except:
-                pass
-            try:
-                self._sock.close()
-            except:
-                pass
+            try: self._sock.send(b"\x88\x80\x00\x00\x00\x00")
+            except: pass
+            try: self._sock.close()
+            except: pass
             self._sock = None
 
     def close(self):

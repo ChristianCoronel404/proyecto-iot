@@ -633,7 +633,9 @@ app.get('/api/dashboard-data', async (_req, res) => {
 const httpServer = http.createServer(app)
 
 // ── WebSocket para ESP32 ───────────────────────────────────
-const wssEsp32 = new WebSocketServer({ server: httpServer, path: '/ws' })
+// perMessageDeflate: false → MicroPython no soporta compresión WebSocket.
+// Sin esto el servidor negocia deflate y luego rechaza los frames sin comprimir del ESP32.
+const wssEsp32 = new WebSocketServer({ server: httpServer, path: '/ws', perMessageDeflate: false })
 
 wssEsp32.on('connection', (ws, req) => {
   const remoteIp = req.socket.remoteAddress || 'desconocida'
