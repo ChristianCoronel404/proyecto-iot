@@ -280,7 +280,7 @@ const refreshDashboardCacheFromDb = async () => {
 // Retorna el array de tablas aceptadas. Lanza si falla de forma irrecuperable.
 // ──────────────────────────────────────────────────────────
 
-const processIotStream = async (payload = {}) => {
+const processIotStream = async (payload = {}, { skipDb = false } = {}) => {
   const dispositivoId = parseDeviceId(payload)
   const now           = new Date()
   const timeLabel     = now.toISOString().slice(11, 19)
@@ -297,10 +297,12 @@ const processIotStream = async (payload = {}) => {
         temp: temperatura, hum: humedad,
         dispositivoId, created_at: now.toISOString(),
       }
-      pool.query(
-        `INSERT INTO dht22_data (temperatura, humedad, dispositivo_id) VALUES ($1, $2, $3)`,
-        [temperatura, humedad, dispositivoId],
-      ).catch(() => appendAuditLog({ action: 'IOT_WRITE_ERROR', table: 'dht22_data', desc: 'Falló persistencia DHT22', type: 'warning' }))
+      if (!skipDb) {
+        pool.query(
+          `INSERT INTO dht22_data (temperatura, humedad, dispositivo_id) VALUES ($1, $2, $3)`,
+          [temperatura, humedad, dispositivoId],
+        ).catch(() => appendAuditLog({ action: 'IOT_WRITE_ERROR', table: 'dht22_data', desc: 'Falló persistencia DHT22', type: 'warning' }))
+      }
     }
   }
 
@@ -314,11 +316,13 @@ const processIotStream = async (payload = {}) => {
         id: `rt-${now.getTime()}-gy`, time: timeLabel,
         gyroX, gyroY, gyroZ, dispositivoId, created_at: now.toISOString(),
       }
-      pool.query(
-        `INSERT INTO gy50_data (gyro_x, gyro_y, gyro_z, raw_x, raw_y, raw_z, dispositivo_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [gyroX, gyroY, gyroZ, rawX, rawY, rawZ, dispositivoId],
-      ).catch(() => appendAuditLog({ action: 'IOT_WRITE_ERROR', table: 'gy50_data', desc: 'Falló persistencia GY50', type: 'warning' }))
+      if (!skipDb) {
+        pool.query(
+          `INSERT INTO gy50_data (gyro_x, gyro_y, gyro_z, raw_x, raw_y, raw_z, dispositivo_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [gyroX, gyroY, gyroZ, rawX, rawY, rawZ, dispositivoId],
+        ).catch(() => appendAuditLog({ action: 'IOT_WRITE_ERROR', table: 'gy50_data', desc: 'Falló persistencia GY50', type: 'warning' }))
+      }
     }
   }
 
@@ -362,7 +366,7 @@ const processIotStream = async (payload = {}) => {
     }
   }
 
-  if (accepted.length > 0) {
+  if (accepted.length > 0 || realtimeState.motores) {
     realtimeState.updatedAt = now.toISOString()
     pushRealtimeUpdate()
   }
@@ -638,7 +642,9 @@ wssEsp32.on('connection', (ws, req) => {
   ws.on('message', async (raw) => {
     try {
       const payload = JSON.parse(raw.toString())
-      await processIotStream(payload)
+      // skipDb: true — el ESP32 persiste directamente a Supabase,
+      // el servidor solo actualiza el estado en memoria y hace broadcast.
+      await processIotStream(payload, { skipDb: true })
     } catch {
       // Mensaje malformado — ignorar silenciosamente.
     }
