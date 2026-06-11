@@ -286,11 +286,15 @@ const refreshDashboardCacheFromDb = async () => {
 // Retorna el array de tablas aceptadas. Lanza si falla de forma irrecuperable.
 // ──────────────────────────────────────────────────────────
 
+let lastDbSaveTime = 0
+
 const processIotStream = async (payload = {}, { skipDb = false } = {}) => {
-  const dispositivoId = parseDeviceId(payload)
   const now           = new Date()
   const timeLabel     = now.toISOString().slice(11, 19)
+  const dispositivoId = parseDeviceId(payload)
   const accepted      = []
+  const shouldSaveToDb = !skipDb && (now.getTime() - lastDbSaveTime >= 1000)
+  if (shouldSaveToDb) lastDbSaveTime = now.getTime()
 
   // ── DHT22 ──
   const dhtRaw = payload.dht22
@@ -303,7 +307,7 @@ const processIotStream = async (payload = {}, { skipDb = false } = {}) => {
         temp: temperatura, hum: humedad,
         dispositivoId, created_at: now.toISOString(),
       }
-      if (!skipDb) {
+      if (shouldSaveToDb) {
         pool.query(
           `INSERT INTO dht22_data (temperatura, humedad, dispositivo_id) VALUES ($1, $2, $3)`,
           [temperatura, humedad, dispositivoId],
@@ -322,7 +326,7 @@ const processIotStream = async (payload = {}, { skipDb = false } = {}) => {
         id: `rt-${now.getTime()}-gy`, time: timeLabel,
         gyroX, gyroY, gyroZ, dispositivoId, created_at: now.toISOString(),
       }
-      if (!skipDb) {
+      if (shouldSaveToDb) {
         pool.query(
           `INSERT INTO gy50_data (gyro_x, gyro_y, gyro_z, raw_x, raw_y, raw_z, dispositivo_id)
            VALUES ($1, $2, $3, $4, $5, $6, $7)`,
@@ -349,7 +353,7 @@ const processIotStream = async (payload = {}, { skipDb = false } = {}) => {
         anguloServo: anguloServo !== null ? anguloServo : null,
         dispositivoId, created_at: now.toISOString(),
       }
-      if (!skipDb) {
+      if (shouldSaveToDb) {
         if (hasFijo) {
           pool.query(
             `INSERT INTO hcsr04_fijo_data (distancia_cm, dispositivo_id) VALUES ($1, $2)`,
@@ -378,7 +382,7 @@ const processIotStream = async (payload = {}, { skipDb = false } = {}) => {
       motorDer: parseMotor(motoresRaw.motor_der ?? motoresRaw.motorDer?.velocidad, motoresRaw.motor_der_dir ?? motoresRaw.motorDer?.direccion),
       motorIzq: parseMotor(motoresRaw.motor_izq ?? motoresRaw.motorIzq?.velocidad, motoresRaw.motor_izq_dir ?? motoresRaw.motorIzq?.direccion),
     }
-    if (!skipDb) {
+    if (shouldSaveToDb) {
       pool.query(`INSERT INTO motor_der_data (velocidad_pwm, direccion, dispositivo_id) VALUES ($1, $2, $3)`, [realtimeState.motores.motorDer.velocidad, realtimeState.motores.motorDer.direccion, dispositivoId]).catch(()=>{})
       pool.query(`INSERT INTO motor_izq_data (velocidad_pwm, direccion, dispositivo_id) VALUES ($1, $2, $3)`, [realtimeState.motores.motorIzq.velocidad, realtimeState.motores.motorIzq.direccion, dispositivoId]).catch(()=>{})
       if (Number.isFinite(ultraRaw?.anguloServo) || Number.isFinite(payload.hcsr04?.anguloServo)) {
