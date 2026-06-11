@@ -198,6 +198,9 @@ const pushDashboardUpdate  = () => broadcastToBrowsers({ type: 'dashboard-update
 const syncAndPushDashboard = async () => { await refreshDashboardCacheFromDb(); pushDashboardUpdate() }
 
 const appendAuditLog = ({ action, table, desc, user = 'esp32', type = 'info' }) => {
+  createAuditEntry({ usuarioId: null, accion: action, tablaAfectada: table, registroId: null, descripcion: desc })
+    .catch(e => console.error('[AUDITORIA] Fallo al guardar log persistente:', e.message))
+
   const now = new Date()
   dashboardCache.auditoria = [
     { id: `rt-${now.getTime()}`, user, action, table, desc, time: now.toISOString().slice(11, 19), type },
