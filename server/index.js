@@ -180,8 +180,9 @@ const formatTimeLabel = (row) => {
   const rawHora = row.hora ? String(row.hora).slice(0, 8) : null
   if (rawHora) return rawHora
   if (!row.created_at) return '--:--'
-  const parsed = new Date(row.created_at)
-  return Number.isNaN(parsed.getTime()) ? '--:--' : parsed.toISOString().slice(11, 19)
+  const rawD = new Date(row.created_at)
+  const parsed = new Date(rawD.getTime() - rawD.getTimezoneOffset() * 60000)
+  return Number.isNaN(parsed.getTime()) ? '--:--' : parsed.toLocaleTimeString('es-BO', { hour12: false, timeZone: 'America/La_Paz' })
 }
 
 const cloneDashboardCache  = () => ({ dht22: [...dashboardCache.dht22], gy50: [...dashboardCache.gy50], hcsr04: [...dashboardCache.hcsr04], auditoria: [...dashboardCache.auditoria] })
@@ -203,7 +204,7 @@ const appendAuditLog = ({ action, table, desc, user = 'esp32', type = 'info' }) 
 
   const now = new Date()
   dashboardCache.auditoria = [
-    { id: `rt-${now.getTime()}`, user, action, table, desc, time: now.toISOString().slice(11, 19), type },
+    { id: `rt-${now.getTime()}`, user, action, table, desc, time: now.toLocaleTimeString('es-BO', { hour12: false, timeZone: 'America/La_Paz' }), type },
     ...(dashboardCache.auditoria || []),
   ].slice(0, 80)
 }
@@ -268,7 +269,7 @@ const fetchDashboardData = async () => {
   const auditoria = auditoriaResult.rows.map((row) => ({
     id: row.id, user: row.usuario, action: row.accion,
     table: row.tabla_afectada, desc: row.descripcion,
-    time: row.fecha ? new Date(row.fecha).toISOString().slice(11, 19) : '--:--:--',
+    time: row.fecha ? new Date(row.fecha).toLocaleTimeString('es-BO', { hour12: false, timeZone: 'America/La_Paz' }) : '--:--:--',
     type: String(row.accion || '').toLowerCase().includes('error') ? 'warning'
         : String(row.accion || '').toLowerCase().includes('login') ? 'success' : 'info',
   }))
@@ -293,7 +294,7 @@ let lastDbSaveTime = 0
 
 const processIotStream = async (payload = {}, { skipDb = false } = {}) => {
   const now           = new Date()
-  const timeLabel     = now.toISOString().slice(11, 19)
+  const timeLabel     = now.toLocaleTimeString('es-BO', { hour12: false, timeZone: 'America/La_Paz' })
   const dispositivoId = parseDeviceId(payload)
   const accepted      = []
   const shouldSaveToDb = !skipDb && (now.getTime() - lastDbSaveTime >= 1000)
@@ -440,7 +441,7 @@ app.post('/api/iot/:table', async (req, res) => {
   const payload       = req.body || {}
   const dispositivoId = parseDeviceId(payload)
   const now           = new Date()
-  const timeLabel     = now.toISOString().slice(11, 19)
+  const timeLabel     = now.toLocaleTimeString('es-BO', { hour12: false, timeZone: 'America/La_Paz' })
 
   if (!Number.isInteger(dispositivoId) || dispositivoId <= 0) {
     return res.status(400).json({ error: 'dispositivo_id inválido' })
