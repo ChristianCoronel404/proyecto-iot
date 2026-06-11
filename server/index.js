@@ -164,7 +164,7 @@ const normalizeGyroPayload = (p = {}) => ({
 })
 
 const normalizeHcsr04Payload = (p = {}) => ({
-  distanciaCm:    toNumber(p.distancia_cm     ?? p.distancia    ?? p.distance     ?? p.dist),
+  distanciaCm:    toNumber(p.distancia_cm     ?? p.distancia    ?? p.distance     ?? p.dist ?? p.fijo),
   tiempoEcho:     Number.isFinite(Number(p.tiempo_echo ?? p.tiempoEcho ?? p.echo_time))
     ? Number.parseInt(p.tiempo_echo ?? p.tiempoEcho ?? p.echo_time, 10)
     : null,
@@ -210,7 +210,7 @@ const appendAuditLog = ({ action, table, desc, user = 'esp32', type = 'info' }) 
 // ──────────────────────────────────────────────────────────
 
 const fetchDashboardData = async () => {
-  const [dht22Result, gy50Result, hcsr04Result, auditoriaResult] = await Promise.all([
+  const [dht22Result, gy50Result, hcsr04FijoResult, hcsr04MovilResult, auditoriaResult] = await Promise.all([
     pool.query(`
       SELECT id, temperatura, humedad, dispositivo_id, fecha, hora, created_at
       FROM dht22_data ORDER BY created_at DESC, id DESC LIMIT 120
@@ -220,10 +220,12 @@ const fetchDashboardData = async () => {
       FROM gy50_data ORDER BY created_at DESC, id DESC LIMIT 120
     `),
     pool.query(`
-      SELECT id, tiempo_echo, distancia_cm, distancia_izq_cm, distancia_der_cm,
-             distancia_movil_cm, angulo_servo,
-             dispositivo_id, fecha, hora, created_at
-      FROM hcsr04_data ORDER BY created_at DESC, id DESC LIMIT 120
+      SELECT id, distancia_cm, dispositivo_id, fecha, hora, created_at
+      FROM hcsr04_fijo_data ORDER BY created_at DESC, id DESC LIMIT 120
+    `),
+    pool.query(`
+      SELECT id, distancia_cm, angulo_servo, dispositivo_id, fecha, hora, created_at
+      FROM hcsr04_movil_data ORDER BY created_at DESC, id DESC LIMIT 120
     `),
     pool.query(`
       SELECT a.id, a.usuario_id, COALESCE(u.username, 'system') AS usuario,
@@ -245,16 +247,20 @@ const fetchDashboardData = async () => {
     dispositivoId: row.dispositivo_id, fecha: row.fecha, hora: row.hora, created_at: row.created_at,
   }))
 
-  const hcsr04 = hcsr04Result.rows.reverse().map((row) => ({
-    id: row.id, time: formatTimeLabel(row),
-    dist:       toNumber(row.distancia_cm),
-    distIzq:    toNumber(row.distancia_izq_cm),
-    distDer:    toNumber(row.distancia_der_cm),
-    distMovil:  toNumber(row.distancia_movil_cm),
-    anguloServo: row.angulo_servo !== null && row.angulo_servo !== undefined ? Number(row.angulo_servo) : null,
-    tiempoEcho: row.tiempo_echo,
+  const hcsr04Fijo = hcsr04FijoResult.rows.map((row) => ({
+    id: `f-${row.id}`, time: formatTimeLabel(row),
+    dist: toNumber(row.distancia_cm),
     dispositivoId: row.dispositivo_id, fecha: row.fecha, hora: row.hora, created_at: row.created_at,
   }))
+
+  const hcsr04Movil = hcsr04MovilResult.rows.map((row) => ({
+    id: `m-${row.id}`, time: formatTimeLabel(row),
+    distMovil: toNumber(row.distancia_cm),
+    anguloServo: row.angulo_servo !== null && row.angulo_servo !== undefined ? Number(row.angulo_servo) : null,
+    dispositivoId: row.dispositivo_id, fecha: row.fecha, hora: row.hora, created_at: row.created_at,
+  }))
+
+  const hcsr04 = [...hcsr04Fijo, ...hcsr04Movil].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
   const auditoria = auditoriaResult.rows.map((row) => ({
     id: row.id, user: row.usuario, action: row.accion,
@@ -329,40 +335,57 @@ const processIotStream = async (payload = {}, { skipDb = false } = {}) => {
   // ── HC-SR04 (sensor fijo + sensor móvil/servo) ──
   const ultraRaw = payload.hcsr04
   if (ultraRaw && typeof ultraRaw === 'object') {
-    const { distanciaCm, tiempoEcho, distanciaIzqCm, distanciaDerCm, distanciaMovilCm, anguloServo } = normalizeHcsr04Payload(ultraRaw)
-    const hasAnyReading = Number.isFinite(distanciaCm) || Number.isFinite(distanciaIzqCm) || Number.isFinite(distanciaDerCm) || Number.isFinite(distanciaMovilCm)
+    const { distanciaCm, distanciaMovilCm, anguloServo } = normalizeHcsr04Payload(ultraRaw)
+    const hasFijo = Number.isFinite(distanciaCm)
+    const hasMovil = Number.isFinite(distanciaMovilCm)
 
-    if (hasAnyReading) {
-      accepted.push('hcsr04_data')
+    if (hasFijo || hasMovil) {
+      if (hasFijo) accepted.push('hcsr04_fijo_data')
+      if (hasMovil) accepted.push('hcsr04_movil_data')
       realtimeState.hcsr04 = {
         id: `rt-${now.getTime()}-hc`, time: timeLabel,
-        dist:       Number.isFinite(distanciaCm)       ? distanciaCm       : null,
-        distIzq:    Number.isFinite(distanciaIzqCm)    ? distanciaIzqCm    : null,
-        distDer:    Number.isFinite(distanciaDerCm)    ? distanciaDerCm    : null,
-        distMovil:  Number.isFinite(distanciaMovilCm)  ? distanciaMovilCm  : null,
-        anguloServo: anguloServo !== null              ? anguloServo        : null,
-        tiempoEcho, dispositivoId, created_at: now.toISOString(),
+        dist:        hasFijo ? distanciaCm : null,
+        distMovil:   hasMovil ? distanciaMovilCm : null,
+        anguloServo: anguloServo !== null ? anguloServo : null,
+        dispositivoId, created_at: now.toISOString(),
       }
-      pool.query(
-        `INSERT INTO hcsr04_data (tiempo_echo, distancia_cm, distancia_izq_cm, distancia_der_cm, distancia_movil_cm, angulo_servo, dispositivo_id)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [tiempoEcho, distanciaCm, distanciaIzqCm, distanciaDerCm, distanciaMovilCm, anguloServo, dispositivoId],
-      ).catch(() => appendAuditLog({ action: 'IOT_WRITE_ERROR', table: 'hcsr04_data', desc: 'Falló persistencia HC-SR04', type: 'warning' }))
+      if (!skipDb) {
+        if (hasFijo) {
+          pool.query(
+            `INSERT INTO hcsr04_fijo_data (distancia_cm, dispositivo_id) VALUES ($1, $2)`,
+            [distanciaCm, dispositivoId]
+          ).catch(() => appendAuditLog({ action: 'IOT_WRITE_ERROR', table: 'hcsr04_fijo_data', desc: 'Falló persistencia HC-SR04 Fijo', type: 'warning' }))
+        }
+        if (hasMovil) {
+          pool.query(
+            `INSERT INTO hcsr04_movil_data (distancia_cm, angulo_servo, dispositivo_id) VALUES ($1, $2, $3)`,
+            [distanciaMovilCm, anguloServo, dispositivoId]
+          ).catch(() => appendAuditLog({ action: 'IOT_WRITE_ERROR', table: 'hcsr04_movil_data', desc: 'Falló persistencia HC-SR04 Móvil', type: 'warning' }))
+        }
+      }
     }
   }
 
   // ── Motores (Motor A derecho + Motor B izquierdo) ──
   const motoresRaw = payload.motores
   if (motoresRaw && typeof motoresRaw === 'object') {
-    const parseMotor = (m) => {
-      if (!m || typeof m !== 'object') return { velocidad: 0, direccion: 'stop' }
-      const vel = Number.isFinite(Number(m.velocidad)) ? Math.max(0, Math.min(65535, Number(m.velocidad))) : 0
-      const dir = ['adelante', 'atras', 'stop'].includes(m.direccion) ? m.direccion : 'stop'
-      return { velocidad: vel, direccion: dir }
+    const parseMotor = (vel, dir) => {
+      const v = Number.isFinite(Number(vel)) ? Math.max(0, Math.min(65535, Number(vel))) : 0
+      const d = ['adelante', 'atras', 'stop'].includes(dir) ? dir : 'stop'
+      return { velocidad: v, direccion: d }
     }
     realtimeState.motores = {
-      motorDer: parseMotor(motoresRaw.motor_der ?? motoresRaw.motorDer),
-      motorIzq: parseMotor(motoresRaw.motor_izq ?? motoresRaw.motorIzq),
+      motorDer: parseMotor(motoresRaw.motor_der ?? motoresRaw.motorDer?.velocidad, motoresRaw.motor_der_dir ?? motoresRaw.motorDer?.direccion),
+      motorIzq: parseMotor(motoresRaw.motor_izq ?? motoresRaw.motorIzq?.velocidad, motoresRaw.motor_izq_dir ?? motoresRaw.motorIzq?.direccion),
+    }
+    if (!skipDb) {
+      pool.query(`INSERT INTO motor_der_data (velocidad_pwm, direccion, dispositivo_id) VALUES ($1, $2, $3)`, [realtimeState.motores.motorDer.velocidad, realtimeState.motores.motorDer.direccion, dispositivoId]).catch(()=>{})
+      pool.query(`INSERT INTO motor_izq_data (velocidad_pwm, direccion, dispositivo_id) VALUES ($1, $2, $3)`, [realtimeState.motores.motorIzq.velocidad, realtimeState.motores.motorIzq.direccion, dispositivoId]).catch(()=>{})
+      if (Number.isFinite(ultraRaw?.anguloServo) || Number.isFinite(payload.hcsr04?.anguloServo)) {
+        const ang = Number(ultraRaw?.anguloServo ?? payload.hcsr04?.anguloServo)
+        const duty = Math.floor(26 + (ang / 180.0) * (128 - 26))
+        pool.query(`INSERT INTO servo_data (angulo_grados, duty_ciclo, dispositivo_id) VALUES ($1, $2, $3)`, [ang, duty, dispositivoId]).catch(()=>{})
+      }
     }
   }
 
@@ -449,28 +472,24 @@ app.post('/api/iot/:table', async (req, res) => {
       return res.status(202).json({ ok: true, table })
     }
 
-    if (table === 'hcsr04_data') {
-      const { distanciaCm, tiempoEcho, distanciaIzqCm, distanciaDerCm, distanciaMovilCm, anguloServo } = normalizeHcsr04Payload(payload)
-      const hasAnyReading = Number.isFinite(distanciaCm) || Number.isFinite(distanciaIzqCm) || Number.isFinite(distanciaDerCm) || Number.isFinite(distanciaMovilCm)
-      if (!hasAnyReading) {
-        return res.status(400).json({ error: 'Sin lecturas válidas de HC-SR04' })
-      }
-      realtimeState.hcsr04 = {
-        id: `rt-${now.getTime()}`, time: timeLabel,
-        dist:        distanciaCm,
-        distIzq:     distanciaIzqCm,
-        distDer:     distanciaDerCm,
-        distMovil:   distanciaMovilCm,
-        anguloServo: anguloServo,
-        tiempoEcho, dispositivoId, created_at: now.toISOString(),
-      }
+    if (table === 'hcsr04_fijo_data') {
+      const distanciaCm = toNumber(payload.distancia_cm ?? payload.fijo)
+      if (!Number.isFinite(distanciaCm)) return res.status(400).json({ error: 'Distancia inválida' })
+      realtimeState.hcsr04 = { ...realtimeState.hcsr04, id: `rt-${now.getTime()}`, time: timeLabel, dist: distanciaCm, dispositivoId, created_at: now.toISOString() }
       realtimeState.updatedAt = now.toISOString()
       pushRealtimeUpdate()
-      pool.query(
-        `INSERT INTO hcsr04_data (tiempo_echo, distancia_cm, distancia_izq_cm, distancia_der_cm, distancia_movil_cm, angulo_servo, dispositivo_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [tiempoEcho, distanciaCm, distanciaIzqCm, distanciaDerCm, distanciaMovilCm, anguloServo, dispositivoId],
-      ).catch(() => appendAuditLog({ action: 'IOT_WRITE_ERROR', table: 'hcsr04_data', desc: 'Falló persistencia HC-SR04', type: 'warning' }))
+      pool.query(`INSERT INTO hcsr04_fijo_data (distancia_cm, dispositivo_id) VALUES ($1, $2)`, [distanciaCm, dispositivoId])
+      return res.status(202).json({ ok: true, table })
+    }
+
+    if (table === 'hcsr04_movil_data') {
+      const distanciaMovilCm = toNumber(payload.distancia_cm ?? payload.movil)
+      const anguloServo = Number.isFinite(Number(payload.angulo_servo)) ? Number(payload.angulo_servo) : null
+      if (!Number.isFinite(distanciaMovilCm)) return res.status(400).json({ error: 'Distancia inválida' })
+      realtimeState.hcsr04 = { ...realtimeState.hcsr04, id: `rt-${now.getTime()}`, time: timeLabel, distMovil: distanciaMovilCm, anguloServo, dispositivoId, created_at: now.toISOString() }
+      realtimeState.updatedAt = now.toISOString()
+      pushRealtimeUpdate()
+      pool.query(`INSERT INTO hcsr04_movil_data (distancia_cm, angulo_servo, dispositivo_id) VALUES ($1, $2, $3)`, [distanciaMovilCm, anguloServo, dispositivoId])
       return res.status(202).json({ ok: true, table })
     }
 
@@ -632,10 +651,24 @@ app.get('/api/dashboard-data', async (_req, res) => {
 
 const httpServer = http.createServer(app)
 
-// ── WebSocket para ESP32 ───────────────────────────────────
-// perMessageDeflate: false → MicroPython no soporta compresión WebSocket.
-// Sin esto el servidor negocia deflate y luego rechaza los frames sin comprimir del ESP32.
-const wssEsp32 = new WebSocketServer({ server: httpServer, path: '/ws', perMessageDeflate: false })
+const wssEsp32 = new WebSocketServer({ noServer: true, perMessageDeflate: false })
+const wssBrowser = new WebSocketServer({ noServer: true })
+
+httpServer.on('upgrade', (request, socket, head) => {
+  const pathname = new URL(request.url, `http://${request.headers.host || 'localhost'}`).pathname;
+
+  if (pathname === '/ws') {
+    wssEsp32.handleUpgrade(request, socket, head, (ws) => {
+      wssEsp32.emit('connection', ws, request);
+    });
+  } else if (pathname === '/ws-dashboard') {
+    wssBrowser.handleUpgrade(request, socket, head, (ws) => {
+      wssBrowser.emit('connection', ws, request);
+    });
+  } else {
+    socket.destroy();
+  }
+});
 
 wssEsp32.on('connection', (ws, req) => {
   const remoteIp = req.socket.remoteAddress || 'desconocida'
@@ -644,9 +677,7 @@ wssEsp32.on('connection', (ws, req) => {
   ws.on('message', async (raw) => {
     try {
       const payload = JSON.parse(raw.toString())
-      // skipDb: true — el ESP32 persiste directamente a Supabase,
-      // el servidor solo actualiza el estado en memoria y hace broadcast.
-      await processIotStream(payload, { skipDb: true })
+      await processIotStream(payload, { skipDb: false })
     } catch {
       // Mensaje malformado — ignorar silenciosamente.
     }
@@ -657,8 +688,6 @@ wssEsp32.on('connection', (ws, req) => {
 })
 
 // ── WebSocket para navegadores ─────────────────────────────
-const wssBrowser = new WebSocketServer({ server: httpServer, path: '/ws-dashboard' })
-
 wssBrowser.on('connection', (ws) => {
   ws.isAlive = true
   ws.on('pong', () => { ws.isAlive = true })

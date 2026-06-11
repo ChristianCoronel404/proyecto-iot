@@ -44,13 +44,15 @@ SUPABASE_INTERVAL_MS = 10000
 # ================================================================
 #  CONFIGURACION DE PINES
 # ================================================================
-IN1 = Pin(26, Pin.OUT)
-IN2 = Pin(27, Pin.OUT)
-IN3 = Pin(32, Pin.OUT)
-IN4 = Pin(33, Pin.OUT)
+IN1 = Pin(26, Pin.OUT, value=0)
+IN2 = Pin(27, Pin.OUT, value=0)
+IN3 = Pin(32, Pin.OUT, value=0)
+IN4 = Pin(33, Pin.OUT, value=0)
 
 ENA = PWM(Pin(14), freq=1000)
 ENB = PWM(Pin(25), freq=1000)
+ENA.duty_u16(0)
+ENB.duty_u16(0)
 
 SPEED      = 22000
 TURN_SPEED = 45000  # Reducido un poco para que no gire tan violentamente y no patine
@@ -93,6 +95,10 @@ def conectar_wifi():
             timeout -= 1
     if wifi.isconnected():
         print("[WIFI] OK:", wifi.ifconfig())
+        try:
+            wifi.config(pm=0) # Disable power saving for better latency and WS stability
+        except:
+            pass
     else:
         print("[WIFI] Timeout, reintentando mas tarde")
 
@@ -144,6 +150,7 @@ class WSClient:
             s.settimeout(1)
             self._sock = s
             print("[WS] Conectado")
+            self._last_conn_time = time.ticks_ms()
             return True
         except Exception as e:
             print("[WS] Error:", e)
@@ -166,15 +173,12 @@ class WSClient:
             masked = bytearray(length)
             for i in range(length):
                 masked[i] = data[i] ^ mask[i % 4]
-            self._sock.send(header + mask + bytes(masked))
-            # Drenar lo que el servidor responda para no llenar su buffer
-            try:
-                self._sock.recv(256)
-            except:
-                pass  # Timeout es completamente normal
+            self._sock.sendall(header + mask + bytes(masked))
             return True
         except Exception as e:
-            print("[WS] Send error:", e)
+            # Only print error if we were connected for more than 1 second to avoid spam
+            if hasattr(self, '_last_conn_time') and time.ticks_diff(time.ticks_ms(), self._last_conn_time) > 1000:
+                print("[WS] Send error:", e)
             self._close()
             return False
 
@@ -199,6 +203,7 @@ ws = WSClient()
 #  SUPABASE REST UPLOAD
 # ================================================================
 def _post_supabase(table, body):
+    r = None
     try:
         import urequests
         r = urequests.post(
@@ -206,9 +211,16 @@ def _post_supabase(table, body):
             data=ujson.dumps(body),
             headers=SUPABASE_HEADERS,
         )
-        r.close()
     except Exception as e:
-        print("[SUPA] Error " + table + ":", e)
+        # Ignore Error 16 (EBUSY) which is just transient network lack of sockets
+        if "16" not in str(e):
+            print("[SUPA] Error " + table + ":", e)
+    finally:
+        if r is not None:
+            try:
+                r.close()
+            except:
+                pass
 
 # ================================================================
 #  ESTADO DE MOTORES Y CACHE PARA TELEMETRIA
@@ -601,29 +613,33 @@ def enviar_ws_datos(dht_d, f_fixed_val, f_mobile_val):
         return
 
     payload = {
-        "dispositivo_id": DISPOSITIVO_ID,
+        "dispositivoId": DISPOSITIVO_ID,
         "gy50": {
-            "gyro_x": gyro_x_dps,
-            "gyro_y": gyro_y_dps,
-            "gyro_z": gyro_z_dps,
-            "raw_x": gyro_raw_x,
-            "raw_y": gyro_raw_y,
-            "raw_z": gyro_raw_z,
+            "gyroX": gyro_x_dps,
+            "gyroY": gyro_y_dps,
+            "gyroZ": gyro_z_dps,
+            "rawX": gyro_raw_x,
+            "rawY": gyro_raw_y,
+            "rawZ": gyro_raw_z,
         },
         "hcsr04": {
-            "distancia_cm": round(f_fixed_val, 2) if f_fixed_val < CAP else None,
-            "distancia_movil_cm": round(f_mobile_val, 2) if f_mobile_val < CAP else None,
-            "angulo_servo": sweep_angle,
+            "fijo": round(f_fixed_val, 2) if f_fixed_val < 3000 else None,
+            "movil": round(f_mobile_val, 2) if f_mobile_val < 3000 else None,
+            "anguloServo": sweep_angle
         },
         "motores": {
-            "motor_der": {"velocidad": motor_state["der_vel"], "direccion": motor_state["der_dir"]},
-            "motor_izq": {"velocidad": motor_state["izq_vel"], "direccion": motor_state["izq_dir"]},
+            "motor_der": motor_state["der_vel"],
+            "motor_der_dir": motor_state["der_dir"],
+            "motor_izq": motor_state["izq_vel"],
+            "motor_izq_dir": motor_state["izq_dir"],
         },
     }
 
-    # Incluir DHT22 solo si hay datos recientes
     if dht_d is not None:
-        payload["dht22"] = dht_d
+        payload["dht22"] = {
+            "temperatura": dht_d.get("temp", 0),
+            "humedad": dht_d.get("hum", 0)
+        }
 
     msg = ujson.dumps(payload)
 

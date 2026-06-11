@@ -465,6 +465,10 @@ export default function Dashboard() {
     return Object.values(timeMap);
   }, [hcsr04Data]);
 
+  const hcsr04FijoChartData = useMemo(() => {
+    return hcsr04Data.filter(d => Number.isFinite(d.dist));
+  }, [hcsr04Data]);
+
   const appendRealtimePoint = (setter, point) => {
     if (!point || typeof point !== 'object') return;
     const normalized = formatDateTimeLabels(point);
@@ -749,7 +753,7 @@ export default function Dashboard() {
           </div>
           <div style={{ width: '100%', height: 'calc(100% - 40px)' }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={hcsr04Data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={hcsr04FijoChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorDistFijo" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%"  stopColor="#8b5cf6" stopOpacity={0.5} />
@@ -760,7 +764,7 @@ export default function Dashboard() {
                 <XAxis dataKey="time" stroke="rgba(255,255,255,0.4)" fontSize={11} tickMargin={10} />
                 <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} reversed />
                 <Tooltip content={<CustomTooltip />} />
-                <Area type="step" dataKey="dist" stroke="#8b5cf6" strokeWidth={2} fill="url(#colorDistFijo)" name="Fijo (cm)" />
+                <Area type="step" dataKey="dist" stroke="#8b5cf6" strokeWidth={2} fill="url(#colorDistFijo)" name="Fijo (cm)" connectNulls />
               </AreaChart>
             </ResponsiveContainer>
           </div>
