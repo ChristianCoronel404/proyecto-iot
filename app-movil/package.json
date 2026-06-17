@@ -1,0 +1,23 @@
+{
+  "name": "app-movil",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "expo": "^54.0.35",
+    "expo-linear-gradient": "~15.0.8",
+    "expo-status-bar": "~3.0.9",
+    "lucide-react-native": "^1.20.0",
+    "paths-js": "^0.4.11",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-chart-kit": "^6.12.3",
+    "react-native-svg": "15.12.1"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "private": true
+}

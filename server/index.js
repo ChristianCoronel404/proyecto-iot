@@ -9,6 +9,7 @@ import pg from 'pg'
 import bcrypt from 'bcryptjs'
 import { WebSocketServer } from 'ws'
 import { fileURLToPath } from 'url'
+import os from 'os'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -409,7 +410,20 @@ const processIotStream = async (payload = {}, { skipDb = false } = {}) => {
 // RUTAS HTTP
 // ──────────────────────────────────────────────────────────
 
-app.get('/api/health', (_req, res) => res.json({ ok: true }))
+app.get('/api/health', (_req, res) => {
+  const networkInterfaces = os.networkInterfaces()
+  let localIp = 'localhost'
+  for (const interfaceName in networkInterfaces) {
+    const interfaces = networkInterfaces[interfaceName]
+    for (const iface of interfaces) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        localIp = iface.address
+        break
+      }
+    }
+  }
+  return res.json({ ok: true, ip: localIp, port: PORT })
+})
 app.get('/api/realtime-state', (_req, res) => res.json(cloneRealtimeState()))
 app.get('/api/iot/ping', (_req, res) => res.json({ ok: true, service: 'iot-ingest' }))
 
@@ -511,25 +525,38 @@ app.post('/api/iot/:table', async (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   const username = String(req.body?.username || '').trim()
   const password = String(req.body?.password || '')
-  if (!username || !password) return res.status(400).json({ error: 'Usuario y contraseña son obligatorios' })
+  console.log(`[Server] Petición de login recibida. Usuario: "${username}" de IP: ${req.ip}`);
+  if (!username || !password) {
+    console.log('[Server] Login fallido: usuario o contraseña vacíos.');
+    return res.status(400).json({ error: 'Usuario y contraseña son obligatorios' })
+  }
 
   try {
     const result = await pool.query(
       `SELECT id, username, password_hash, rol, activo, created_at FROM usuarios WHERE LOWER(username) = LOWER($1) LIMIT 1`,
       [username],
     )
-    if (result.rowCount === 0) return res.status(401).json({ error: 'Credenciales inválidas' })
+    if (result.rowCount === 0) {
+      console.log(`[Server] Login fallido: Usuario "${username}" no encontrado.`);
+      return res.status(401).json({ error: 'Credenciales inválidas' })
+    }
     const user = result.rows[0]
-    if (!user.activo) return res.status(403).json({ error: 'Usuario inactivo' })
+    if (!user.activo) {
+      console.log(`[Server] Login fallido: Usuario "${username}" está inactivo.`);
+      return res.status(403).json({ error: 'Usuario inactivo' })
+    }
     if (!verifyPassword(password, user.password_hash)) {
+      console.log(`[Server] Login fallido: Contraseña incorrecta para "${username}".`);
       await createAuditEntry({ usuarioId: user.id, accion: 'LOGIN_ERROR', tablaAfectada: 'usuarios', registroId: user.id, descripcion: `Intento fallido para ${user.username}` })
       return res.status(401).json({ error: 'Credenciales inválidas' })
     }
+    console.log(`[Server] Login exitoso para el usuario: "${username}"`);
     await createAuditEntry({ usuarioId: user.id, accion: 'LOGIN', tablaAfectada: 'usuarios', registroId: user.id, descripcion: `Login exitoso: ${user.username}` })
     const role = displayRole(user.rol)
     const token = jwt.sign({ id: user.id, username: user.username, role }, JWT_SECRET, { expiresIn: JWT_EXPIRES })
     return res.json({ id: user.id, username: user.username, role, email: `${user.username}@drako.local`, activo: user.activo, createdAt: user.created_at, token })
   } catch (error) {
+    console.error('[Server] Error en proceso de login:', error);
     return res.status(500).json({ error: error.message || 'No se pudo iniciar sesión' })
   }
 })
@@ -734,8 +761,21 @@ dashboardHeartbeat.unref()
 
 httpServer.listen(PORT, '0.0.0.0', () => {
   refreshDashboardCacheFromDb().catch(() => { /* se repuebla con el heartbeat */ })
+  
+  const networkInterfaces = os.networkInterfaces()
+  let localIp = 'localhost'
+  for (const interfaceName in networkInterfaces) {
+    const interfaces = networkInterfaces[interfaceName]
+    for (const iface of interfaces) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        localIp = iface.address
+        break
+      }
+    }
+  }
+
   console.log(`Backend listo en      http://localhost:${PORT}/api/health`)
   console.log(`WS ESP32 en           ws://localhost:${PORT}/ws`)
   console.log(`WS Dashboard en       ws://localhost:${PORT}/ws-dashboard`)
-  console.log(`Acceso en red LAN:    http://<TU_IP_LAN>:${PORT}`)
+  console.log(`Acceso en red LAN:    http://${localIp}:${PORT}`)
 })

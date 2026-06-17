@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import styles from './LoginModal.module.css';
 
@@ -16,6 +16,18 @@ export default function LoginModal({ onClose, onLogin }) {
   const [showPass,    setShowPass]    = useState(false);
   const [submitting,  setSubmitting]  = useState(false);
   const [error,       setError]       = useState('');
+  const [backendUrl,  setBackendUrl]  = useState('');
+
+  useEffect(() => {
+    fetch('/api/health')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ip && data.port) {
+          setBackendUrl(`http://${data.ip}:${data.port}`);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -71,7 +83,9 @@ export default function LoginModal({ onClose, onLogin }) {
 
           <div className={styles.brandFooter}>
             <span className={styles.brandDot} />
-            <span className={styles.brandOnline}>SISTEMA EN LÍNEA</span>
+            <span className={styles.brandOnline}>
+              SISTEMA EN LÍNEA {backendUrl ? `(${backendUrl})` : ''}
+            </span>
           </div>
         </div>
 
