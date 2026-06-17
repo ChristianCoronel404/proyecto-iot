@@ -26,7 +26,10 @@ export default function LoginScreen({ onLogin }) {
       
       const res = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Bypass-Tunnel-Reminder': 'true'
+        },
         body: JSON.stringify({ username: username.trim(), password }),
       });
       

@@ -100,6 +100,8 @@ export default function DashboardScreen({ user, onLogout }) {
     const normalized = formatDateTimeLabels(point);
     setter((prev) => {
       const list = Array.isArray(prev) ? prev : [];
+      const last = list.length ? list[list.length - 1] : null;
+      if (last?.id && normalized.id && String(last.id) === String(normalized.id)) return list;
       return [...list, normalized].slice(-50); // limit to 50 for mobile memory
     });
   };
@@ -111,7 +113,9 @@ export default function DashboardScreen({ user, onLogout }) {
 
     const loadRealtimeState = async () => {
       try {
-        const res = await fetch(`${apiUrl}/api/realtime-state`);
+        const res = await fetch(`${apiUrl}/api/realtime-state`, {
+          headers: { 'Bypass-Tunnel-Reminder': 'true' }
+        });
         const data = await res.json();
         if (res.ok && isMounted) {
           setRealtimeDht(data?.dht22 || null);
@@ -124,7 +128,9 @@ export default function DashboardScreen({ user, onLogout }) {
 
     const loadDashboardData = async () => {
       try {
-        const res = await fetch(`${apiUrl}/api/dashboard-data`);
+        const res = await fetch(`${apiUrl}/api/dashboard-data`, {
+          headers: { 'Bypass-Tunnel-Reminder': 'true' }
+        });
         const data = await res.json();
         if (res.ok && isMounted) applyDashboardData(data);
       } catch (e) { console.log('HTTP fetch error:', e.message); }
@@ -134,12 +140,14 @@ export default function DashboardScreen({ user, onLogout }) {
       if (!isMounted) return;
       // Reemplazar http:// o https:// por ws:// o wss://
       const wsUrl = apiUrl.replace(/^http/, 'ws') + '/ws-dashboard';
-      events = new WebSocket(wsUrl);
+      events = new WebSocket(wsUrl, null, {
+        headers: { 'Bypass-Tunnel-Reminder': 'true' }
+      });
 
       events.onmessage = (event) => {
         try {
           const parsed = JSON.parse(event.data);
-          if (parsed.type === 'dashboard-update' && parsed.data) { applyDashboardData(parsed.data); }
+          if (parsed.type === 'dashboard-update' && parsed.data) { applyDashboardData(parsed.data); return; }
           if (parsed.type === 'sensor-realtime' && parsed.data) {
             const { dht22, gy50, hcsr04, motores } = parsed.data;
             setRealtimeDht(dht22 || null);
@@ -176,12 +184,14 @@ export default function DashboardScreen({ user, onLogout }) {
     
     // HTTP Fallback if WS fails
     const realtimePoll = setInterval(loadRealtimeState, 3000);
+    const historyPoll = setInterval(loadDashboardData, 10000);
 
     return () => {
       isMounted = false;
       events?.close();
       if (reconnectTimer) clearTimeout(reconnectTimer);
       clearInterval(realtimePoll);
+      clearInterval(historyPoll);
     };
   }, []);
 

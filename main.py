@@ -20,7 +20,7 @@ DISPOSITIVO_ID = 1
 
 # WebSocket al servidor Node.js (para dashboard en tiempo real)
 # >>> CAMBIA ESTA IP a la IP LAN de tu PC que ejecuta npm run dev <<<
-WS_HOST = "10.116.20.72"
+WS_HOST = "10.32.72.251"
 WS_PORT = 4000
 WS_PATH = "/ws"
 
@@ -56,7 +56,7 @@ led        = Pin(2, Pin.OUT)
 dht_sensor = dht.DHT22(Pin(15))
 last_dht_time = 0
 
-robot_on    = False
+robot_on    = True
 last_button = 1
 
 # ================================================================
@@ -602,6 +602,13 @@ time.sleep_ms(500)
 
 # Conectar WiFi al inicio
 conectar_wifi()
+
+# Inicializar sensores al arrancar directamente
+sweep_angle = 90
+init_gyro()
+calibrate_gyro(50)
+update_heading()
+target_heading_drive = current_heading
 
 while True:
 
