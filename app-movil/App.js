@@ -19,7 +19,7 @@ export default function App() {
   return (
     <>
       <StatusBar style="light" />
-      <DashboardScreen user={user} />
+      <DashboardScreen user={user} onLogout={() => setUser(null)} />
     </>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Dimensions, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ThermometerSun, Compass, Radar, Settings, AlertTriangle, ArrowUp, ArrowLeft, ArrowRight, CircleSlash, Radio, Activity } from 'lucide-react-native';
+import { ThermometerSun, Compass, Radar, Settings, AlertTriangle, ArrowUp, ArrowLeft, ArrowRight, CircleSlash, Radio, Activity, LogOut } from 'lucide-react-native';
 import { TempHumBars, GyroHeadingWidget, ScanAnglesWidget, ServoGaugeWidget, MotoresWidget } from './components/Widgets';
 import { LineChart } from 'react-native-chart-kit';
 
@@ -20,7 +20,7 @@ const formatDateTimeLabels = (point) => {
   return { ...point, timeLabel };
 };
 
-export default function DashboardScreen({ user }) {
+export default function DashboardScreen({ user, onLogout }) {
   const [dht22Data, setDht22Data] = useState([]);
   const [gy50Data, setGy50Data] = useState([]);
   const [hcsr04Data, setHcsr04Data] = useState([]);
@@ -312,9 +312,14 @@ export default function DashboardScreen({ user }) {
             <Text style={styles.title}>Drako Control Center</Text>
             <Text style={styles.subtitle}>Monitoreo de Telemetría IoT</Text>
           </View>
-          <View style={styles.onlineBadge}>
-            <View style={styles.onlineDot} />
-            <Text style={styles.onlineText}>EN LÍNEA</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={styles.onlineBadge}>
+              <View style={styles.onlineDot} />
+              <Text style={styles.onlineText}>EN LÍNEA</Text>
+            </View>
+            <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
+              <LogOut size={16} color="#ef4444" />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -402,5 +407,6 @@ const styles = StyleSheet.create({
   statusSensorText: { fontSize: 9, marginTop: 4, fontWeight: 'bold' },
   widgetCard: { backgroundColor: 'rgba(15,23,42,0.6)', borderRadius: 16, padding: 15, marginBottom: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)' },
   widgetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)', paddingBottom: 10, marginBottom: 10 },
-  widgetTitle: { fontSize: 13, fontWeight: 'bold', color: 'rgba(255,255,255,0.8)' }
+  widgetTitle: { fontSize: 13, fontWeight: 'bold', color: 'rgba(255,255,255,0.8)' },
+  logoutBtn: { padding: 8, backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: 10, borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.3)' }
 });
